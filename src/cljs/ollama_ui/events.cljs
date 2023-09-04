@@ -1,5 +1,5 @@
 (ns ollama-ui.events
-  (:require [refx.alpha :refer [reg-event-db reg-event-fx]]
+  (:require [refx.alpha :refer [reg-event-db reg-event-fx ->interceptor]]
             [ajax.core :refer [json-request-format json-response-format]]
             [ollama-ui.db :refer [default-db]]
             [refx.interceptors :refer [after]]
@@ -15,28 +15,45 @@
 
 (def check-spec-interceptor (after (partial check-and-throw :ollama-ui.db/db)))
 
+(def offline-interceptor
+  (->interceptor
+   :id :offline?
+   :after  (fn [{:keys [coeffects] :as context}]
+             (let [{:keys [event]} coeffects
+                   [_ {:keys [uri status]}] event]
+               (if (and (some? uri)
+                        (zero? status))
+                 (assoc-in context [:coeffects :db :ollama-offline?] true)
+                 context)))))
+
+(def ollama-interceptors
+  [offline-interceptor
+   check-spec-interceptor])
+
 (reg-event-db
  :initialise-db
- [check-spec-interceptor]
+ ollama-interceptors
  (fn [_ _]
    default-db))
 
 ;; GET MODELS
 (reg-event-db
  :get-models-success
- [check-spec-interceptor]
+ ollama-interceptors
  (fn [db [_ {:keys [models]}]]
    (assoc db :models models)))
 
 (reg-event-db
  :get-models-failure
- [check-spec-interceptor]
- (fn [db [_ result]]
-   db))
+ ollama-interceptors
+ (fn [db [_ {:keys [status]}]]
+   (if (zero? status)
+     (assoc db :ollama-offline? true)
+     db)))
 
 (reg-event-fx
  :get-models
- [check-spec-interceptor]
+ ollama-interceptors
  (fn []
    {:http-xhrio {:method :get
                  :uri (str api-base "/api/tags")

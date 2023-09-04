@@ -1,6 +1,6 @@
 (ns ollama-ui.views
   (:require [ollama-ui.lib :refer [defnc]]
-            [helix.core :refer [$]]
+            [helix.core :refer [$ <>]]
             [helix.hooks :refer [use-effect]]
             [refx.alpha :refer [use-sub dispatch]]))
 
@@ -23,7 +23,6 @@
      (dispatch [:get-models]))
 
     ($ :div {:class ["text-white" "bg-white/5"]}
-       #_($ OllamaIcon)
        ($ :ul
           (when (seq models)
             (for [model models]
@@ -39,7 +38,11 @@
      ($ :p "Footer")))
 
 (defnc Main []
-  ($ :div {:class ["flex" "flex-col" "w-full" "h-full"]}
-     ($ Header)
-     ($ Dialog)
-     ($ Footer)))
+  (let [ollama-offline? (use-sub [:ollama-offline?])]
+    ($ :div {:class ["flex" "flex-col" "w-full" "h-full"]}
+       (if-not ollama-offline?
+         (<>
+          ($ Header)
+          ($ Dialog)
+          ($ Footer))
+         ($ :p {:class ["text-white"]} "Offline")))))
