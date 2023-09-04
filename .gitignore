@@ -18,6 +18,7 @@ public/js
 !.vscode/extensions.json
 .lsp
 .idea
+.calva
 .clj-kondo/*
 .shadow-cljs
 .DS_Store

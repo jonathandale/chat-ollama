@@ -6,6 +6,9 @@
             [cljs.spec.alpha :as s]))
 
 (defonce api-base "http://127.0.0.1:11434")
+(defonce wait-for 2000)
+(defonce wait-multiplier 1.25)
+(defonce wait-max (* 1000 60 5))
 
 (defn check-and-throw
   "Throws an exception if `db` doesn't match the Spec `a-spec`."
@@ -19,11 +22,21 @@
   (->interceptor
    :id :offline?
    :after  (fn [{:keys [coeffects] :as context}]
+
              (let [{:keys [event]} coeffects
-                   [_ {:keys [uri status]}] event]
+                   [_ wait {:keys [uri status]}] event]
                (if (and (some? uri)
                         (zero? status))
-                 (assoc-in context [:coeffects :db :ollama-offline?] true)
+                 (let [new-wait (* (or wait wait-for) wait-multiplier)]
+                   (cond-> context
+                     true
+                     (assoc-in [:coeffects :db :ollama-offline?] true)
+
+                     (< new-wait wait-max)
+                     (update-in [:effects :fx]
+                                conj
+                                [:dispatch-later {:ms new-wait
+                                                  :dispatch [:get-models new-wait]}])))
                  context)))))
 
 (def ollama-interceptors
@@ -41,12 +54,15 @@
  :get-models-success
  ollama-interceptors
  (fn [db [_ {:keys [models]}]]
-   (assoc db :models models)))
+   (assoc db
+          :models models
+          :ollama-offline? false)))
 
 (reg-event-db
  :get-models-failure
  ollama-interceptors
- (fn [db [_ {:keys [status]}]]
+ (fn [db [_ _wait {:keys [status]}]]
+  ;;  (js/console.log "wait" wait)
    (if (zero? status)
      (assoc db :ollama-offline? true)
      db)))
@@ -54,10 +70,10 @@
 (reg-event-fx
  :get-models
  ollama-interceptors
- (fn []
+ (fn [_db [_ wait]]
    {:http-xhrio {:method :get
                  :uri (str api-base "/api/tags")
                  :format (json-request-format)
                  :response-format (json-response-format {:keywords? true})
                  :on-success [:get-models-success]
-                 :on-failure [:get-models-failure]}}))
+                 :on-failure [:get-models-failure wait]}}))
