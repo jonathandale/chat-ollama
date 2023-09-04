@@ -1,0 +1,13 @@
+{:source-paths ["src/cljs"]
+
+ :dependencies [[lilactown/helix "0.1.10"]
+                [com.fbeyer/refx "0.0.49"]
+                [com.fbeyer/refx-http "0.0.49"]
+                [cljs-ajax/cljs-ajax "0.8.4"]]
+
+ :dev-http {1420 "public"}
+
+ :builds {:app {:target :browser
+                :output-dir "public/js"
+                :asset-path "/js"
+                :modules {:main {:init-fn ollama-ui.core/main}}}}}
