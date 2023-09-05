@@ -49,23 +49,28 @@
  (fn [_ _]
    default-db))
 
-;; GET MODELS
 (reg-event-db
+ :set-selected-model
+ ollama-interceptors
+ (fn [db [_ model]]
+   (assoc db :selected-model model)))
+
+;; GET MODELS
+(reg-event-fx
  :get-models-success
  ollama-interceptors
- (fn [db [_ {:keys [models]}]]
-   (assoc db
-          :models models
-          :ollama-offline? false)))
+ (fn [{:keys [db]} [_ {:keys [models]}]]
+   (cond-> {:db (assoc db
+                       :models models
+                       :ollama-offline? false)}
+     (nil? (:selected-model db))
+     (assoc :dispatch [:set-selected-model (first models)]))))
 
 (reg-event-db
  :get-models-failure
  ollama-interceptors
  (fn [db [_ _wait {:keys [status]}]]
-  ;;  (js/console.log "wait" wait)
-   (if (zero? status)
-     (assoc db :ollama-offline? true)
-     db)))
+   (assoc db :ollama-offline? (zero? status))))
 
 (reg-event-fx
  :get-models

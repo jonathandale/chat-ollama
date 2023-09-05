@@ -7,3 +7,4 @@
 
 (s/def ::model (s/keys :req-un [::digest ::name ::size]))
 (s/def ::models (s/nilable (s/coll-of ::model :kind vector?)))
+(s/def ::selected-model (s/nilable any?))

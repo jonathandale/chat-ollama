@@ -1,5 +1,7 @@
 (ns ollama-ui.views
-  (:require [ollama-ui.lib :refer [defnc]]
+  (:require [clojure.string :as str]
+            [clojure.set :refer [union]]
+            [ollama-ui.lib :refer [defnc]]
             [helix.core :refer [$ <>]]
             [helix.hooks :refer [use-effect]]
             [refx.alpha :refer [use-sub dispatch]]))
@@ -8,16 +10,28 @@
   (.toFixed (/ bytes 1024 1024 1024) 2))
 
 (defnc Header []
-  (let [models (use-sub [:models])]
-    ($ :div {:class ["text-white" "bg-white/5"]}
-       ($ :ul
-          (when (seq models)
+  (let [models (use-sub [:models])
+        selected-model (use-sub [:selected-model])]
+    ($ :div {:data-tauri-drag-region true
+             :class ["flex" "items-center" "justify-center" "text-white" "py-4"]}
+       (when (seq models)
+         ($ :div {:class ["flex" "gap-3"]}
             (for [model models]
-              ($ :li {:key (:digest model)}
-                 (str (:name model) " — " (b->gb (:size model)) "GB"))))))))
+              (let [[model-name model-version] (str/split (:name model) #":")
+                    class #{"bg-gray-800/80" "hover:bg-gray-800"}
+                    selected-class #{"bg-white" "text-gray-900"}]
+                ($ :button {:key (:digest model)
+                            :class (vec (union #{"rounded-full" "px-4" "py-1.5" "text-sm"}
+                                               (if (= (:name selected-model) (:name model))
+                                                 selected-class
+                                                 class)))
+                            :on-click #(dispatch [:set-selected-model model])}
+                   model-name
+                   ($ :span {:class ["opacity-50"]} ":" model-version)))))))))
 
 (defnc Dialog []
-  ($ :div {:class ["grow" "w-full" "max-w-md" "mx-auto"]}
+  ($ :div {:data-tauri-drag-region true
+           :class ["grow" "w-full" "max-w-md" "mx-auto"]}
      ($ :p "Dialog")))
 
 (defnc Footer []

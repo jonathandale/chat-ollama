@@ -11,3 +11,8 @@
  :models
  (fn [db _]
    (:models db)))
+
+(reg-sub
+ :selected-model
+ (fn [db _]
+   (:selected-model db)))

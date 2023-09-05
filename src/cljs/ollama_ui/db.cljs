@@ -5,12 +5,12 @@
 
 (s/def ::db (s/keys :req-un [:ollama-ui.db/ollama-offline?
                              :ollama-ui.db.model/models
-                             :ollama-ui.db.dialog/dialogs
-                             :ollama-ui.db.dialog/selected-dialog]))
+                             :ollama-ui.db.model/selected-model
+                             :ollama-ui.db.dialog/dialogs]))
 
 ;; Default DB
 (def default-db
   {:models nil
    :dialogs nil
-   :selected-dialog nil
+   :selected-model nil
    :ollama-offline? false})
