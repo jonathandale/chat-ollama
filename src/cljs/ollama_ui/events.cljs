@@ -1,6 +1,5 @@
 (ns ollama-ui.events
   (:require [refx.alpha :refer [reg-event-db reg-event-fx ->interceptor]]
-            [ajax.core :refer [json-request-format json-response-format]]
             [ollama-ui.db :refer [default-db]]
             [refx.interceptors :refer [after]]
             [cljs.spec.alpha :as s]))
@@ -24,8 +23,8 @@
    :after  (fn [{:keys [coeffects] :as context}]
 
              (let [{:keys [event]} coeffects
-                   [_ wait {:keys [uri status]}] event]
-               (if (and (some? uri)
+                   [_ wait {:keys [url status]}] event]
+               (if (and (some? url)
                         (zero? status))
                  (let [new-wait (* (or wait wait-for) wait-multiplier)]
                    (cond-> context
@@ -76,9 +75,7 @@
  :get-models
  ollama-interceptors
  (fn [_db [_ wait]]
-   {:http-xhrio {:method :get
-                 :uri (str api-base "/api/tags")
-                 :format (json-request-format)
-                 :response-format (json-response-format {:keywords? true})
+   {:http-fetch {:url (str api-base "/api/tags")
+                 :method :get
                  :on-success [:get-models-success]
                  :on-failure [:get-models-failure wait]}}))

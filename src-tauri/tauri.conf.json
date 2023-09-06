@@ -19,12 +19,20 @@
       },
       "window": {
         "startDragging": true
+      },
+      "http": {
+        "all": true,
+        "request": true,
+        "scope": [
+          "http://localhost:11434/*",
+          "http://127.0.0.1:11434/*"
+        ]
       }
     },
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "com.ollama-ui.dev",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",

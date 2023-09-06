@@ -3,10 +3,11 @@
             [helix.core :refer [$]]
             [refx.alpha :as refx :refer [dispatch-sync]]
             [refx.http]
-            ["react-dom/client" :as rdc]
+            [ollama-ui.fx]
             [ollama-ui.events]
             [ollama-ui.subs]
-            [ollama-ui.views :as views]))
+            [ollama-ui.views :as views]
+            ["react-dom/client" :as rdc]))
 
 (enable-console-print!)
 

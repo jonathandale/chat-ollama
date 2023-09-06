@@ -7,7 +7,9 @@
     "dev-css": "npx tailwindcss -i ./src/css/style.css -o ./public/style.css --watch",
     "dev-app": "shadow-cljs watch app",
     "dev": "concurrently \"npm:dev-app\" \"npm:dev-css\"",
-    "build": "shadow-cljs release app",
+    "build-css": "npx tailwindcss -i ./src/css/style.css -o ./public/style.css",
+    "build-app": "shadow-cljs release app",
+    "build": "npm run build-css && npm run build-app",
     "shadow-cljs": "shadow-cljs",
     "tauri": "tauri"
   },

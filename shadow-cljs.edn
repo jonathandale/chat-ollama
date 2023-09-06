@@ -3,7 +3,9 @@
  :dependencies [[lilactown/helix "0.1.10"]
                 [com.fbeyer/refx "0.0.49"]
                 [com.fbeyer/refx-http "0.0.49"]
-                [cljs-ajax/cljs-ajax "0.8.4"]]
+                [cljs-ajax/cljs-ajax "0.8.4"]
+                [applied-science/js-interop "0.4.2"]
+                [cljs-bean "1.9.0"]]
 
  :dev-http {1420 "public"}
 
