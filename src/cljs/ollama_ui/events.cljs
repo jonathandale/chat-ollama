@@ -2,7 +2,8 @@
   (:require [refx.alpha :refer [reg-event-db reg-event-fx ->interceptor]]
             [ollama-ui.db :refer [default-db]]
             [refx.interceptors :refer [after]]
-            [cljs.spec.alpha :as s]))
+            [cljs.spec.alpha :as s]
+            ["date-fns" :refer [formatISO]]))
 
 (defonce api-base "http://127.0.0.1:11434")
 (defonce wait-for 2000)
@@ -79,3 +80,12 @@
                  :method :get
                  :on-success [:get-models-success]
                  :on-failure [:get-models-failure wait]}}))
+
+;; DIALOGS
+(reg-event-db
+ :new-dialog
+ ollama-interceptors
+ (fn [db [_ model]]
+   (update-in db [:dialogs model] conj {:uuid (str (random-uuid))
+                                        :model model
+                                        :created-at (formatISO (new js/Date))})))

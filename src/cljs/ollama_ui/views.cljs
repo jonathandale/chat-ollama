@@ -56,7 +56,7 @@
                            ($ Check)
                            ($ ArrowRight)))))))))
        ($ :button {:class ["flex" "justify-between" "w-full" "rounded-sm" "px-3" "py-2" "bg-indigo-600" "text-white"]
-                   :on-click identity}
+                   :on-click #(dispatch [:new-dialog selected-model])}
           "Add Dialog"
           ($ Plus)))))
 

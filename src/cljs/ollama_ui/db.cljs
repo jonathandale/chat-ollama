@@ -10,7 +10,7 @@
 
 ;; Default DB
 (def default-db
-  {:models nil
-   :dialogs nil
+  {:models []
+   :dialogs {}
    :selected-model nil
    :ollama-offline? false})
