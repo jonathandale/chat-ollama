@@ -10,3 +10,4 @@
 (s/def ::dialog (s/keys :req-un [::uuid ::created-at ::model/model] :opt-un [::exchange]))
 (s/def ::model-dialogs (s/nilable (s/coll-of ::dialog :kind vector?)))
 (s/def ::dialogs (s/nilable (s/map-of ::model/model ::model-dialogs)))
+(s/def ::selected-dialog (s/nilable ::dialog))

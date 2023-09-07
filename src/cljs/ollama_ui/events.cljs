@@ -82,10 +82,20 @@
                  :on-failure [:get-models-failure wait]}}))
 
 ;; DIALOGS
+
+(reg-event-db
+ :set-selected-dialog
+ ollama-interceptors
+ (fn [db [_ dialog-uuid]]
+   (assoc db :selected-dialog dialog-uuid)))
+
 (reg-event-db
  :new-dialog
  ollama-interceptors
  (fn [db [_ model]]
-   (update-in db [:dialogs model] conj {:uuid (str (random-uuid))
-                                        :model model
-                                        :created-at (formatISO (new js/Date))})))
+   (let [new-uuid (str (random-uuid))]
+     (-> db
+         (update-in [:dialogs model] conj {:uuid new-uuid
+                                           :model model
+                                           :created-at (formatISO (new js/Date))})
+         (assoc :selected-dialog new-uuid)))))

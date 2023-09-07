@@ -22,7 +22,6 @@
  (fn [db _]
    (:dialogs db)))
 
-
 (reg-sub
  :model-dialogs
  (fn [_ _]
@@ -30,3 +29,8 @@
     (sub [:dialogs])])
  (fn [[selected-model dialogs] _]
    (get dialogs selected-model)))
+
+(reg-sub
+ :selected-dialog
+ (fn [db _]
+   (:selected-dialog db)))

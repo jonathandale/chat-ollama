@@ -7,7 +7,7 @@
             [helix.core :refer [$ <>]]
             [helix.hooks :refer [use-effect]]
             [refx.alpha :refer [use-sub dispatch]]
-            ["lucide-react" :refer [ArrowRight Component Check Plus]]))
+            ["lucide-react" :refer [ArrowRight Component Check Plus MessagesSquare]]))
 
 (defn- b->gb [bytes]
   (.toFixed (/ bytes 1024 1024 1024) 2))
@@ -23,17 +23,19 @@
      ($ :p "Footer")))
 
 (defnc Dialog []
-  (let [model-dialogs (use-sub [:model-dialogs])]
-    ($ :div {:data-tauri-drag-region true
-             :class ["grow" "w-full" "max-w-md" "mx-auto"]}
-       ($ :p "Dialog"))))
+  ($ :div {:data-tauri-drag-region true
+           :class ["grow" "w-full" "max-w-md" "mx-auto"]}
+     ($ :p "Dialog")))
 
 (defnc Sidebar []
-  (let [models (use-sub [:models])
-        selected-model (use-sub [:selected-model])]
+  (let [selected-model (use-sub [:selected-model])
+        selected-dialog (use-sub [:selected-dialog])
+        models (use-sub [:models])
+        model-dialogs (use-sub [:model-dialogs])]
+
     ($ :div {:data-tauri-drag-region true
-             :class ["dark:bg-gray-950" "w-[250px]" "flex" "flex-col" "shrink-0" "p-6"]}
-       ($ :div {:class ["grow"]}
+             :class ["dark:bg-gray-950" "w-[350px]" "flex" "flex-col" "shrink-0" "p-6"]}
+       ($ :div {:class ["mb-8"]}
           ($ :div {:class ["flex" "items-center" "my-3" "gap-3"]}
              ($ Component)
              ($ :p {:class ["text-lg"]}
@@ -55,6 +57,19 @@
                          (if selected?
                            ($ Check)
                            ($ ArrowRight)))))))))
+       ($ :div {:class ["grow"]}
+          ($ :div {:class ["flex" "items-center" "my-3" "gap-3"]}
+             ($ MessagesSquare)
+             ($ :p {:class ["text-lg"]}
+                "Dialogs"))
+          ($ :ul {:class ["flex" "flex-col" "gap-y-2"]}
+             (when (seq model-dialogs)
+               (for [model-dialog model-dialogs]
+                 (let [selected? (= selected-dialog (:uuid model-dialog))]
+                   ($ :li {:key (:uuid model-dialog)}
+                      ($ :button {:class ["text-white" (when selected? "bg-gray-800")]
+                                  :on-click #(dispatch [:set-selected-dialog (:uuid model-dialog)])}
+                         (:uuid model-dialog))))))))
        ($ :button {:class ["flex" "justify-between" "w-full" "rounded-sm" "px-3" "py-2" "bg-indigo-600" "text-white"]
                    :on-click #(dispatch [:new-dialog selected-model])}
           "Add Dialog"
