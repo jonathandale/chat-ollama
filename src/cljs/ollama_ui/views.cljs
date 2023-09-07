@@ -1,42 +1,58 @@
 (ns ollama-ui.views
-  (:require [clojure.string :as str]
+  (:require [applied-science.js-interop :as j]
+            [clojure.string :as str]
             [clojure.set :refer [union]]
             [ollama-ui.lib :refer [defnc]]
+            [cljs-bean.core :refer [->js]]
             [helix.core :refer [$ <>]]
             [helix.hooks :refer [use-effect]]
-            [refx.alpha :refer [use-sub dispatch]]))
+            [refx.alpha :refer [use-sub dispatch]]
+            ["lucide-react" :refer [ArrowRight Component]]))
 
 (defn- b->gb [bytes]
   (.toFixed (/ bytes 1024 1024 1024) 2))
 
-(defnc Header []
-  (let [models (use-sub [:models])
-        selected-model (use-sub [:selected-model])]
-    ($ :div {:data-tauri-drag-region true
-             :class ["flex" "items-center" "justify-center" "text-white" "py-4"]}
-       (when (seq models)
-         ($ :div {:class ["flex" "gap-3"]}
-            (for [model models]
-              (let [[model-name model-version] (str/split (:name model) #":")
-                    class #{"bg-gray-800/80" "hover:bg-gray-800"}
-                    selected-class #{"bg-white" "text-gray-900"}]
-                ($ :button {:key (:digest model)
-                            :class (vec (union #{"rounded-full" "px-4" "py-1.5" "text-sm"}
-                                               (if (= (:name selected-model) (:name model))
-                                                 selected-class
-                                                 class)))
-                            :on-click #(dispatch [:set-selected-model model])}
-                   model-name
-                   ($ :span {:class ["opacity-50"]} ":" model-version)))))))))
+(defnc IconButton [{:keys [icon on-click]}]
+  ($ :button {:on-click on-click
+              :class ["rounded-sm" "dark:hover:bg-gray-900" "w-12"
+                      "h-12" "flex" "items-center" "justify-center"]}
+     ($ icon)))
+
+(defnc Footer []
+  ($ :div {:class ["max-w-md" "w-full" "mx-auto"]}
+     ($ :p "Footer")))
 
 (defnc Dialog []
   ($ :div {:data-tauri-drag-region true
            :class ["grow" "w-full" "max-w-md" "mx-auto"]}
      ($ :p "Dialog")))
 
-(defnc Footer []
-  ($ :div {:class ["max-w-md" "w-full" "mx-auto"]}
-     ($ :p "Footer")))
+(defnc Sidebar []
+  (let [models (use-sub [:models])
+        selected-model (use-sub [:selected-model])]
+    ($ :div {:data-tauri-drag-region true
+             :class ["dark:bg-gray-950" "w-[250px]" "h-full" "shrink-0" "p-6"]}
+       ($ :div {:class ["flex" "items-center" "my-3" "gap-3"]}
+          ($ Component)
+          ($ :p {:class ["text-lg"]}
+             "Models"))
+       ($ :ul {:class ["flex" "flex-col" "gap-y-2"]}
+          (when (seq models)
+            (for [model models]
+              (let [[model-name model-version] (str/split (:name model) #":")
+                    class #{"bg-gray-800/80" "hover:bg-gray-800"}
+                    selected-class #{"bg-white" "text-gray-900" "cursor-pointer"}]
+                ($ :li {}
+                   ($ :button {:key (:digest model)
+                               :class (vec (union #{"flex" "justify-between" "items-center" "pl-3" "pr-2"
+                                                    "py-1.5" "text-sm" "w-full" "text-left" "rounded-sm"}
+                                                  (if (= (:name selected-model) (:name model))
+                                                    selected-class
+                                                    class)))
+                               :on-click #(dispatch [:set-selected-model model])}
+                      model-name
+                      ($ :span {:class ["opacity-50 grow"]} ":" model-version)
+                      ($ ArrowRight))))))))))
 
 (defnc Offline []
   ($ :div {:data-tauri-drag-region true
@@ -59,10 +75,9 @@
    (dispatch [:get-models]))
 
   (let [ollama-offline? (use-sub [:ollama-offline?])]
-    ($ :div {:class ["flex" "flex-col" "w-full" "h-full"]}
+    ($ :div {:class ["flex" "w-full" "h-full"]}
        (if ollama-offline?
          ($ Offline)
-         (<>
-          ($ Header)
-          ($ Dialog)
-          ($ Footer))))))
+         ($ :div {:class ["flex" "dark:text-white" "relative"]}
+            ($ Sidebar)
+            ($ Dialog))))))
