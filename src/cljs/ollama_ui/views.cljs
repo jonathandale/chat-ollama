@@ -7,7 +7,7 @@
             [helix.core :refer [$ <>]]
             [helix.hooks :refer [use-effect]]
             [refx.alpha :refer [use-sub dispatch]]
-            ["lucide-react" :refer [ArrowRight Component]]))
+            ["lucide-react" :refer [ArrowRight Component Check Plus]]))
 
 (defn- b->gb [bytes]
   (.toFixed (/ bytes 1024 1024 1024) 2))
@@ -23,36 +23,42 @@
      ($ :p "Footer")))
 
 (defnc Dialog []
-  ($ :div {:data-tauri-drag-region true
-           :class ["grow" "w-full" "max-w-md" "mx-auto"]}
-     ($ :p "Dialog")))
+  (let [model-dialogs (use-sub [:model-dialogs])]
+    ($ :div {:data-tauri-drag-region true
+             :class ["grow" "w-full" "max-w-md" "mx-auto"]}
+       ($ :p "Dialog"))))
 
 (defnc Sidebar []
   (let [models (use-sub [:models])
         selected-model (use-sub [:selected-model])]
     ($ :div {:data-tauri-drag-region true
-             :class ["dark:bg-gray-950" "w-[250px]" "h-full" "shrink-0" "p-6"]}
-       ($ :div {:class ["flex" "items-center" "my-3" "gap-3"]}
-          ($ Component)
-          ($ :p {:class ["text-lg"]}
-             "Models"))
-       ($ :ul {:class ["flex" "flex-col" "gap-y-2"]}
-          (when (seq models)
-            (for [model models]
-              (let [[model-name model-version] (str/split (:name model) #":")
-                    class #{"bg-gray-800/80" "hover:bg-gray-800"}
-                    selected-class #{"bg-white" "text-gray-900" "cursor-pointer"}]
-                ($ :li {}
-                   ($ :button {:key (:digest model)
-                               :class (vec (union #{"flex" "justify-between" "items-center" "pl-3" "pr-2"
-                                                    "py-1.5" "text-sm" "w-full" "text-left" "rounded-sm"}
-                                                  (if (= (:name selected-model) (:name model))
-                                                    selected-class
-                                                    class)))
-                               :on-click #(dispatch [:set-selected-model model])}
-                      model-name
-                      ($ :span {:class ["opacity-50 grow"]} ":" model-version)
-                      ($ ArrowRight))))))))))
+             :class ["dark:bg-gray-950" "w-[250px]" "flex" "flex-col" "shrink-0" "p-6"]}
+       ($ :div {:class ["grow"]}
+          ($ :div {:class ["flex" "items-center" "my-3" "gap-3"]}
+             ($ Component)
+             ($ :p {:class ["text-lg"]}
+                "Models"))
+          ($ :ul {:class ["flex" "flex-col" "gap-y-2"]}
+             (when (seq models)
+               (for [model models]
+                 (let [[model-name model-version] (str/split (:name model) #":")
+                       class #{"bg-gray-800/80" "hover:bg-gray-800"}
+                       selected-class #{"bg-white" "text-gray-900" "cursor-pointer"}
+                       selected? (= (:name selected-model) (:name model))]
+                   ($ :li {:key (:digest model)}
+                      ($ :button {:class (vec (union #{"flex" "justify-between" "items-center" "pl-3" "pr-2"
+                                                       "py-1.5" "text-sm" "w-full" "text-left" "rounded-sm"}
+                                                     (if selected? selected-class class)))
+                                  :on-click #(dispatch [:set-selected-model model])}
+                         model-name
+                         ($ :span {:class ["opacity-50 grow"]} ":" model-version)
+                         (if selected?
+                           ($ Check)
+                           ($ ArrowRight)))))))))
+       ($ :button {:class ["flex" "justify-between" "w-full" "rounded-sm" "px-3" "py-2" "bg-indigo-600" "text-white"]
+                   :on-click identity}
+          "Add Dialog"
+          ($ Plus)))))
 
 (defnc Offline []
   ($ :div {:data-tauri-drag-region true
