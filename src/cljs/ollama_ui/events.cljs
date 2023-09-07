@@ -52,8 +52,8 @@
 (reg-event-db
  :set-selected-model
  ollama-interceptors
- (fn [db [_ model]]
-   (assoc db :selected-model model)))
+ (fn [db [_ model-name]]
+   (assoc db :selected-model model-name)))
 
 ;; GET MODELS
 (reg-event-fx
@@ -64,7 +64,7 @@
                        :models models
                        :ollama-offline? false)}
      (nil? (:selected-model db))
-     (assoc :dispatch [:set-selected-model (first models)]))))
+     (assoc :dispatch [:set-selected-model (:name (first models))]))))
 
 (reg-event-db
  :get-models-failure
@@ -92,10 +92,10 @@
 (reg-event-db
  :new-dialog
  ollama-interceptors
- (fn [db [_ model]]
+ (fn [db [_ model-name]]
    (let [new-uuid (str (random-uuid))]
      (-> db
-         (update-in [:dialogs model] conj {:uuid new-uuid
-                                           :model model
-                                           :created-at (formatISO (new js/Date))})
+         (update-in [:dialogs model-name] conj {:uuid new-uuid
+                                                :name model-name
+                                                :created-at (formatISO (new js/Date))})
          (assoc :selected-dialog new-uuid)))))

@@ -46,12 +46,12 @@
                  (let [[model-name model-version] (str/split (:name model) #":")
                        class #{"bg-gray-800/80" "hover:bg-gray-800"}
                        selected-class #{"bg-white" "text-gray-900" "cursor-pointer"}
-                       selected? (= (:name selected-model) (:name model))]
+                       selected? (= selected-model (:name model))]
                    ($ :li {:key (:digest model)}
                       ($ :button {:class (vec (union #{"flex" "justify-between" "items-center" "pl-3" "pr-2"
                                                        "py-1.5" "text-sm" "w-full" "text-left" "rounded-sm"}
                                                      (if selected? selected-class class)))
-                                  :on-click #(dispatch [:set-selected-model model])}
+                                  :on-click #(dispatch [:set-selected-model (:name model)])}
                          model-name
                          ($ :span {:class ["opacity-50 grow"]} ":" model-version)
                          (if selected?
