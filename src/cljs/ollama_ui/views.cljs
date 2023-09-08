@@ -27,6 +27,18 @@
            :class ["grow" "w-full" "max-w-md" "mx-auto"]}
      ($ :p "Dialog")))
 
+(defnc SidebarItem [{:keys [selected? on-click children]}]
+  (let [class #{"bg-gray-800/80" "hover:bg-gray-800"}
+        selected-class #{"bg-white" "text-gray-900" "cursor-pointer"}]
+    ($ :button {:class (vec (union #{"flex" "justify-between" "items-center" "pl-3" "pr-2"
+                                     "py-1.5" "text-sm" "w-full" "text-left" "rounded-sm"}
+                                   (if selected? selected-class class)))
+                :on-click on-click #_#(dispatch [:set-selected-model (:name model)])}
+       children
+       (if selected?
+         ($ Check)
+         ($ ArrowRight)))))
+
 (defnc Sidebar []
   (let [selected-model (use-sub [:selected-model])
         selected-dialog (use-sub [:selected-dialog])
@@ -34,7 +46,7 @@
         model-dialogs (use-sub [:model-dialogs])]
 
     ($ :div {:data-tauri-drag-region true
-             :class ["dark:bg-gray-950" "w-[350px]" "flex" "flex-col" "shrink-0" "p-6"]}
+             :class ["dark:bg-gray-950/50" "w-[350px]" "flex" "flex-col" "shrink-0" "p-6"]}
        ($ :div {:class ["mb-8"]}
           ($ :div {:class ["flex" "items-center" "my-3" "gap-3"]}
              ($ Component)
@@ -44,33 +56,30 @@
              (when (seq models)
                (for [model models]
                  (let [[model-name model-version] (str/split (:name model) #":")
-                       class #{"bg-gray-800/80" "hover:bg-gray-800"}
-                       selected-class #{"bg-white" "text-gray-900" "cursor-pointer"}
                        selected? (= selected-model (:name model))]
                    ($ :li {:key (:digest model)}
-                      ($ :button {:class (vec (union #{"flex" "justify-between" "items-center" "pl-3" "pr-2"
-                                                       "py-1.5" "text-sm" "w-full" "text-left" "rounded-sm"}
-                                                     (if selected? selected-class class)))
-                                  :on-click #(dispatch [:set-selected-model (:name model)])}
-                         model-name
-                         ($ :span {:class ["opacity-50 grow"]} ":" model-version)
-                         (if selected?
-                           ($ Check)
-                           ($ ArrowRight)))))))))
-       ($ :div {:class ["grow"]}
-          ($ :div {:class ["flex" "items-center" "my-3" "gap-3"]}
-             ($ MessagesSquare)
-             ($ :p {:class ["text-lg"]}
-                "Dialogs"))
+                      ($ SidebarItem {:selected? selected?
+                                      :on-click #(dispatch [:set-selected-model (:name model)])}
+                         (<>
+                          model-name
+                          ($ :span {:class ["opacity-50 grow"]} ":" model-version)))))))))
+       ($ :div {:class ["flex" "items-center" "my-3" "gap-3"]}
+          ($ MessagesSquare)
+          ($ :p {:class ["text-lg"]}
+             "Dialogs"
+             ($ :span {:class ["opacity-50" "ml-2"]} (count model-dialogs))))
+       ($ :div {:class ["grow" "overflow-scroll"]}
           ($ :ul {:class ["flex" "flex-col" "gap-y-2"]}
-             (when (seq model-dialogs)
+             (if (seq model-dialogs)
                (for [model-dialog model-dialogs]
                  (let [selected? (= selected-dialog (:uuid model-dialog))]
                    ($ :li {:key (:uuid model-dialog)}
-                      ($ :button {:class ["text-white" (when selected? "bg-gray-800")]
-                                  :on-click #(dispatch [:set-selected-dialog (:uuid model-dialog)])}
-                         (:uuid model-dialog))))))))
-       ($ :button {:class ["flex" "justify-between" "w-full" "rounded-sm" "px-3" "py-2" "bg-indigo-600" "text-white"]
+                      ($ SidebarItem {:selected? selected?
+                                      :on-click #(dispatch [:set-selected-dialog (:uuid model-dialog)])}
+                         ($ :p {} (:uuid model-dialog))))))
+               ($ :p {:class ["text-white/40"]}
+                  (str "No dialogs found for " selected-model)))))
+       ($ :button {:class ["flex" "justify-between" "w-full" "rounded-sm" "mt-6" "px-3" "py-2" "bg-sky-600" "text-white"]
                    :on-click #(dispatch [:new-dialog selected-model])}
           "Add Dialog"
           ($ Plus)))))
