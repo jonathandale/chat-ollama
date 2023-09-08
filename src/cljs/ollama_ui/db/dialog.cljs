@@ -5,9 +5,14 @@
 (s/def ::question string?)
 (s/def ::answer string?)
 (s/def ::created-at string?)
+(s/def ::timestamp number?)
 (s/def ::uuid string?)
-(s/def ::exchange (s/keys :req-un [::question ::answer]))
-(s/def ::dialog (s/keys :req-un [::uuid ::created-at ::model/name] :opt-un [::exchange]))
-(s/def ::model-dialogs (s/nilable (s/coll-of ::dialog :kind coll?)))
-(s/def ::dialogs (s/nilable (s/map-of ::model/name ::model-dialogs)))
+(s/def ::exchange (s/keys :req-un [::question]
+                          :opt-un [::answer]))
+(s/def ::dialog (s/keys :req-un [::uuid
+                                 ::created-at
+                                 ::model/name
+                                 ::timestamp]
+                        :opt-un [::exchange]))
+(s/def ::dialogs (s/nilable (s/map-of ::uuid ::dialog)))
 (s/def ::selected-dialog (s/nilable ::uuid))

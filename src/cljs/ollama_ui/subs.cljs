@@ -28,7 +28,12 @@
    [(sub [:selected-model])
     (sub [:dialogs])])
  (fn [[selected-model dialogs] _]
-   (get dialogs selected-model)))
+   (->> dialogs
+        (vals)
+        (filter (fn [dialog]
+                  (= selected-model (:name dialog))))
+        (sort-by :timestamp)
+        (reverse))))
 
 (reg-sub
  :selected-dialog

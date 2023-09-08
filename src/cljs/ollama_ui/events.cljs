@@ -3,7 +3,7 @@
             [ollama-ui.db :refer [default-db]]
             [refx.interceptors :refer [after]]
             [cljs.spec.alpha :as s]
-            ["date-fns" :refer [formatISO]]))
+            ["date-fns" :refer [formatISO getUnixTime]]))
 
 (defonce api-base "http://127.0.0.1:11434")
 (defonce wait-for 2000)
@@ -60,11 +60,18 @@
  :get-models-success
  ollama-interceptors
  (fn [{:keys [db]} [_ {:keys [models]}]]
-   (cond-> {:db (assoc db
-                       :models models
-                       :ollama-offline? false)}
-     (nil? (:selected-model db))
-     (assoc :dispatch [:set-selected-model (:name (first models))]))))
+   (let [selected-model (:name (first models))]
+     {:db (assoc db
+                 :models models
+                 :ollama-offline? false)
+      :dispatch-n (into [(when (nil? (:selected-model db))
+                           [:set-selected-model selected-model])]
+                        (mapv (fn [model]
+                                [:new-dialog
+                                 (cond-> {:model-name (:name model)}
+                                   (= selected-model (:name model))
+                                   (assoc :set-selected? true))])
+                              models))})))
 
 (reg-event-db
  :get-models-failure
@@ -75,7 +82,7 @@
 (reg-event-fx
  :get-models
  ollama-interceptors
- (fn [_db [_ wait]]
+ (fn [_ [_ wait]]
    {:http-fetch {:url (str api-base "/api/tags")
                  :method :get
                  :on-success [:get-models-success]
@@ -89,13 +96,25 @@
  (fn [db [_ dialog-uuid]]
    (assoc db :selected-dialog dialog-uuid)))
 
-(reg-event-db
+(reg-event-fx
  :new-dialog
  ollama-interceptors
- (fn [db [_ model-name]]
-   (let [new-uuid (str (random-uuid))]
-     (-> db
-         (update-in [:dialogs model-name] conj {:uuid new-uuid
-                                                :name model-name
-                                                :created-at (formatISO (new js/Date))})
-         (assoc :selected-dialog new-uuid)))))
+ (fn [{:keys [db]} [_ {:keys [model-name set-selected?]}]]
+   (let [new-uuid (str (random-uuid))
+         date (new js/Date)]
+     (cond-> {:db (-> db
+                      (assoc-in [:dialogs new-uuid]
+                                {:uuid new-uuid
+                                 :name model-name
+                                 :created-at (formatISO date)
+                                 :timestamp (getUnixTime date)}))}
+       set-selected?
+       (assoc :dispatch [:set-selected-dialog new-uuid])))))
+
+;; PROMPTS
+(reg-event-fx
+ :send-prompt
+ ollama-interceptors
+ (fn [{:keys [db]} [_ {:keys [selected-dialog prompt]}]]
+   {:db (update-in db [:dialogs selected-dialog :exchange]
+                   conj {:question prompt})}))

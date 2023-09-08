@@ -5,7 +5,7 @@
             [ollama-ui.lib :refer [defnc]]
             [cljs-bean.core :refer [->js]]
             [helix.core :refer [$ <>]]
-            [helix.hooks :refer [use-effect]]
+            [helix.hooks :refer [use-effect use-state]]
             [refx.alpha :refer [use-sub dispatch]]
             ["lucide-react" :refer [ArrowRight Component Check Plus MessagesSquare]]))
 
@@ -19,13 +19,24 @@
      ($ icon)))
 
 (defnc Footer []
-  ($ :div {:class ["max-w-md" "w-full" "mx-auto"]}
-     ($ :p "Footer")))
+  (let [selected-dialog (use-sub [:selected-dialog])
+        [prompt set-prompt!] (use-state nil)]
+    ($ :div {:class []}
+       ($ :textarea {:placeholder (str "Send message to " selected-dialog)
+                     :on-change #(set-prompt! (j/get-in % [:target :value]))
+                     :class ["bg-gray-800/50" "p-4" "rounded" "w-full"]})
+       ($ :button {:on-click #(dispatch [:send-prompt {:selected-dialog selected-dialog
+                                                       :prompt prompt}])}
+          "send"))))
+
+(defnc Exchanges []
+  ($ :div {:class ["mb-20"]}
+     ($ :p {} "Exchanges")))
 
 (defnc Dialog []
-  ($ :div {:data-tauri-drag-region true
-           :class ["grow" "w-full" "max-w-md" "mx-auto"]}
-     ($ :p "Dialog")))
+  ($ :div {:class ["flex" "flex-col" "grow" "max-w-5xl" "mx-auto" "justify-end" "p-6"]}
+     ($ Exchanges)
+     ($ Footer)))
 
 (defnc SidebarItem [{:keys [selected? on-click children]}]
   (let [class #{"bg-gray-800/80" "hover:bg-gray-800"}
@@ -33,7 +44,7 @@
     ($ :button {:class (vec (union #{"flex" "justify-between" "items-center" "pl-3" "pr-2"
                                      "py-1.5" "text-sm" "w-full" "text-left" "rounded-sm"}
                                    (if selected? selected-class class)))
-                :on-click on-click #_#(dispatch [:set-selected-model (:name model)])}
+                :on-click on-click}
        children
        (if selected?
          ($ Check)
@@ -76,11 +87,12 @@
                    ($ :li {:key (:uuid model-dialog)}
                       ($ SidebarItem {:selected? selected?
                                       :on-click #(dispatch [:set-selected-dialog (:uuid model-dialog)])}
-                         ($ :p {} (:uuid model-dialog))))))
+                         ($ :p {} (str model-dialog))))))
                ($ :p {:class ["text-white/40"]}
                   (str "No dialogs found for " selected-model)))))
        ($ :button {:class ["flex" "justify-between" "w-full" "rounded-sm" "mt-6" "px-3" "py-2" "bg-sky-600" "text-white"]
-                   :on-click #(dispatch [:new-dialog selected-model])}
+                   :on-click #(dispatch [:new-dialog {:model-name selected-model
+                                                      :set-selected? true}])}
           "Add Dialog"
           ($ Plus)))))
 
@@ -108,6 +120,6 @@
     ($ :div {:class ["flex" "w-full" "h-full"]}
        (if ollama-offline?
          ($ Offline)
-         ($ :div {:class ["flex" "dark:text-white" "relative"]}
+         ($ :div {:class ["flex" "dark:text-white" "relative" "w-full"]}
             ($ Sidebar)
             ($ Dialog))))))
