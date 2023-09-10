@@ -1,6 +1,7 @@
 {:source-paths ["src/cljs"]
 
- :dependencies [[lilactown/helix "0.1.10"]
+ :dependencies [[org.clojure/core.async "1.6.681"]
+                [lilactown/helix "0.1.10"]
                 [com.fbeyer/refx "0.0.49"]
                 [com.fbeyer/refx-http "0.0.49"]
                 [cljs-ajax/cljs-ajax "0.8.4"]

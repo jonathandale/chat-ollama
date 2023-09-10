@@ -39,3 +39,14 @@
  :selected-dialog
  (fn [db _]
    (:selected-dialog db)))
+
+(reg-sub
+ :dialog-exchanges
+ (fn [_ _]
+   [(sub [:selected-dialog])
+    (sub [:dialogs])])
+ (fn [[selected-dialog dialogs] _]
+   (as-> dialogs $
+     (get-in $ [selected-dialog :exchanges])
+     (vals $)
+     (sort-by :timestamp $))))

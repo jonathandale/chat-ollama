@@ -3,20 +3,10 @@
             [clojure.string :as str]
             [clojure.set :refer [union]]
             [ollama-ui.lib :refer [defnc]]
-            [cljs-bean.core :refer [->js]]
             [helix.core :refer [$ <>]]
-            [helix.hooks :refer [use-effect use-state]]
+            [helix.hooks :refer [use-effect use-state use-ref]]
             [refx.alpha :refer [use-sub dispatch]]
             ["lucide-react" :refer [ArrowRight Component Check Plus MessagesSquare]]))
-
-(defn- b->gb [bytes]
-  (.toFixed (/ bytes 1024 1024 1024) 2))
-
-(defnc IconButton [{:keys [icon on-click]}]
-  ($ :button {:on-click on-click
-              :class ["rounded-sm" "dark:hover:bg-gray-900" "w-12"
-                      "h-12" "flex" "items-center" "justify-center"]}
-     ($ icon)))
 
 (defnc Footer []
   (let [selected-dialog (use-sub [:selected-dialog])
@@ -30,8 +20,22 @@
           "send"))))
 
 (defnc Exchanges []
-  ($ :div {:class ["mb-20"]}
-     ($ :p {} "Exchanges")))
+  (let [ref! (use-ref nil)
+        exchanges (use-sub [:dialog-exchanges])]
+
+    (use-effect
+     [exchanges]
+     (when (some? @ref!)
+       (let [scroll-height (j/get @ref! :scrollHeight)]
+         (j/assoc! @ref! :scrollTop scroll-height))))
+
+    ($ :div {:ref ref!
+             :class ["overflow-scroll"]}
+       (for [{:keys [prompt answer] :as exchange} exchanges]
+         ($ :div {:key (:timestamp exchange)}
+            ($ :p prompt)
+            (for [[idx text] answer]
+              ($ :p {:key idx} text)))))))
 
 (defnc Dialog []
   ($ :div {:class ["flex" "flex-col" "grow" "max-w-5xl" "mx-auto" "justify-end" "p-6"]}
@@ -73,7 +77,7 @@
                                       :on-click #(dispatch [:set-selected-model (:name model)])}
                          (<>
                           model-name
-                          ($ :span {:class ["opacity-50 grow"]} ":" model-version)))))))))
+                          ($ :span {:class ["opacity-50" "mr-1"]} ":" model-version)))))))))
        ($ :div {:class ["flex" "items-center" "my-3" "gap-3"]}
           ($ MessagesSquare)
           ($ :p {:class ["text-lg"]}
@@ -87,7 +91,7 @@
                    ($ :li {:key (:uuid model-dialog)}
                       ($ SidebarItem {:selected? selected?
                                       :on-click #(dispatch [:set-selected-dialog (:uuid model-dialog)])}
-                         ($ :p {} (str model-dialog))))))
+                         ($ :p {} (:timestamp model-dialog))))))
                ($ :p {:class ["text-white/40"]}
                   (str "No dialogs found for " selected-model)))))
        ($ :button {:class ["flex" "justify-between" "w-full" "rounded-sm" "mt-6" "px-3" "py-2" "bg-sky-600" "text-white"]

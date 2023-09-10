@@ -1,9 +1,10 @@
 (ns ollama-ui.events
-  (:require [refx.alpha :refer [reg-event-db reg-event-fx ->interceptor]]
-            [ollama-ui.db :refer [default-db]]
-            [refx.interceptors :refer [after]]
+  (:require ["date-fns" :refer [getUnixTime]]
+            [applied-science.js-interop :as j]
             [cljs.spec.alpha :as s]
-            ["date-fns" :refer [formatISO getUnixTime]]))
+            [ollama-ui.db :refer [default-db]]
+            [refx.alpha :refer [->interceptor reg-event-db reg-event-fx]]
+            [refx.interceptors :refer [after]]))
 
 (defonce api-base "http://127.0.0.1:11434")
 (defonce wait-for 2000)
@@ -83,10 +84,10 @@
  :get-models
  ollama-interceptors
  (fn [_ [_ wait]]
-   {:http-fetch {:url (str api-base "/api/tags")
-                 :method :get
-                 :on-success [:get-models-success]
-                 :on-failure [:get-models-failure wait]}}))
+   {:fetch {:url (str api-base "/api/tags")
+            :method :get
+            :on-success [:get-models-success]
+            :on-failure [:get-models-failure wait]}}))
 
 ;; DIALOGS
 
@@ -101,13 +102,12 @@
  ollama-interceptors
  (fn [{:keys [db]} [_ {:keys [model-name set-selected?]}]]
    (let [new-uuid (str (random-uuid))
-         date (new js/Date)]
+         timestamp (j/call js/Date :now)]
      (cond-> {:db (-> db
                       (assoc-in [:dialogs new-uuid]
                                 {:uuid new-uuid
                                  :name model-name
-                                 :created-at (formatISO date)
-                                 :timestamp (getUnixTime date)}))}
+                                 :timestamp timestamp}))}
        set-selected?
        (assoc :dispatch [:set-selected-dialog new-uuid])))))
 
@@ -116,5 +116,49 @@
  :send-prompt
  ollama-interceptors
  (fn [{:keys [db]} [_ {:keys [selected-dialog prompt]}]]
-   {:db (update-in db [:dialogs selected-dialog :exchange]
-                   conj {:question prompt})}))
+   (let [new-uuid (str (random-uuid))
+         timestamp (j/call js/Date :now)]
+     {:db (assoc-in db [:dialogs selected-dialog :exchanges new-uuid]
+                    {:prompt prompt
+                     :timestamp timestamp})
+      :dispatch [:get-answer {:prompt prompt
+                              :dialog-uuid selected-dialog
+                              :exchange-uuid new-uuid}]})))
+
+(reg-event-fx
+ :get-answer-success
+ ollama-interceptors
+ (fn [_ [_ _ _]]
+   {}))
+
+(reg-event-fx
+ :get-answer-progress
+ ollama-interceptors
+ (fn [{:keys [db]}
+      [_
+       {:keys [dialog-uuid exchange-uuid]}
+       {:keys [text idx new-line?]}]]
+   {:db (if new-line?
+          db
+          (update-in db [:dialogs dialog-uuid :exchanges exchange-uuid :answer idx]
+                     (fn [current]
+                       (str current text))))}))
+
+(reg-event-db
+ :get-answer-failure
+ ollama-interceptors
+ (fn [db [_ _ {:keys [status]}]]
+   (assoc db :ollama-offline? (zero? status))))
+
+(reg-event-fx
+ :get-answer
+ ollama-interceptors
+ (fn [{:keys [db]} [_ {:keys [prompt] :as payload}]]
+   {:fetch-stream {:url (str api-base "/api/generate")
+                   :method :post
+                   :headers {:Content-Type "application/json"}
+                   :body {:model (:selected-model db)
+                          :prompt prompt}
+                   :on-progress [:get-answer-progress payload]
+                   :on-success [:get-answer-success payload]
+                   :on-failure [:get-answer-failure payload]}}))
