@@ -27,3 +27,10 @@
           ;; flags in special cases
           ~(merge default-opts opts)
           ~@body))))
+
+#?(:cljs
+   (defn debounce [f delay-ms]
+     (let [timer (atom nil)]
+       (fn [& args]
+         (when @timer (js/clearTimeout @timer))
+         (reset! timer (js/setTimeout #(apply f args) delay-ms))))))

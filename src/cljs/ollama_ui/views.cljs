@@ -2,22 +2,61 @@
   (:require [applied-science.js-interop :as j]
             [clojure.string :as str]
             [clojure.set :refer [union]]
-            [ollama-ui.lib :refer [defnc]]
+            [ollama-ui.lib :refer [defnc debounce]]
             [helix.core :refer [$ <>]]
             [helix.hooks :refer [use-effect use-state use-ref]]
             [refx.alpha :refer [use-sub dispatch]]
-            ["lucide-react" :refer [ArrowRight Component Check Plus MessagesSquare]]))
+            ["lucide-react" :refer [ArrowRight Component Check
+                                    Plus MessagesSquare SendHorizontal]]))
+
+(defonce max-textarea-height 100)
+(defonce min-textarea-height 50)
 
 (defnc Footer []
   (let [selected-dialog (use-sub [:selected-dialog])
-        [prompt set-prompt!] (use-state nil)]
-    ($ :div {:class []}
-       ($ :textarea {:placeholder (str "Send message to " selected-dialog)
-                     :on-change #(set-prompt! (j/get-in % [:target :value]))
-                     :class ["bg-gray-800/50" "p-4" "rounded" "w-full"]})
-       ($ :button {:on-click #(dispatch [:send-prompt {:selected-dialog selected-dialog
-                                                       :prompt prompt}])}
-          "send"))))
+        selected-model (use-sub [:selected-model])
+        [prompt set-prompt!] (use-state nil)
+        slowly-set-prompt! (debounce set-prompt! 150)
+        ref! (use-ref nil)
+        send! #(do
+                 (dispatch [:send-prompt {:selected-dialog selected-dialog
+                                          :prompt prompt}])
+                 (j/assoc! @ref! :value ""))]
+
+    (use-effect
+     [prompt]
+     (when @ref!
+       (j/assoc-in! @ref! [:style :height] "auto")
+       (j/assoc-in! @ref!
+                    [:style :height]
+                    (str (min max-textarea-height
+                              (max min-textarea-height
+                                   (j/get @ref! :scrollHeight))) "px"))))
+
+    ($ :div {:class ["relative"]}
+       ($ :textarea {:ref ref!
+                     :placeholder (str "Send message to " selected-model)
+                     :onChange #(slowly-set-prompt! (j/get-in % [:target :value]))
+                     :onKeyPress #(when (and (= (j/get % :key) "Enter")
+                                             (j/get % :shiftKey))
+                                    (js/console.log "shift+enter")
+                                    (j/call % :preventDefault)
+                                    (send!))
+                     :rows 1
+                     :class ["w-full" "resize-none" "rounded-md" "border" "border-transparent"
+                             "px-4" "py-3" "bg-gray-800/50" "text-base" "font-normal"
+                             "text-white" "outline-none" "focus:bg-gray-800/75"
+                             "placeholder:text-white/40"]})
+       ($ :button {:class ["absolute" "right-0" "bottom-0" "mr-3" "mb-4"]
+                   :on-click send!}
+          ($ SendHorizontal)))))
+
+(defnc Message [{:keys [user? children]}]
+  ($ :div {:class ["rounded-md" "px-3.5" "py-2.5" "max-w-[75%] min-"
+                   (if user?
+                     "bg-white text-gray-900 place-self-end"
+                     "bg-gray-700/50 text-white place-self-start flex flex-col gap-2")]}
+     children))
 
 (defnc Exchanges []
   (let [ref! (use-ref nil)
@@ -30,15 +69,23 @@
          (j/assoc! @ref! :scrollTop scroll-height))))
 
     ($ :div {:ref ref!
-             :class ["overflow-scroll"]}
+             :class ["overflow-scroll" "pb-10"]}
        (for [{:keys [prompt answer] :as exchange} exchanges]
-         ($ :div {:key (:timestamp exchange)}
-            ($ :p prompt)
-            (for [[idx text] answer]
-              ($ :p {:key idx} text)))))))
+         ($ :div {:class ["flex" "flex-col" "gap-3"]
+                  :key (:timestamp exchange)}
+            ($ Message {:user? true}
+               ($ :p {} prompt))
+            ($ Message {:user? false}
+               (if (map? answer)
+                 (for [[idx text] answer]
+                   ($ :p {:class []
+                          :key idx} text))
+                 ($ :div {:class ["animate-pulse" "gap-2"]}
+                    ($ :div {:class ["h-2" "bg-white/20" "rounded"]})
+                    ($ :div {:class ["h-2" "bg-white/20" "rounded" "w-[90%]"]})))))))))
 
 (defnc Dialog []
-  ($ :div {:class ["flex" "flex-col" "grow" "max-w-5xl" "mx-auto" "justify-end" "p-6"]}
+  ($ :div {:class ["flex" "flex-col" "grow" "max-w-5xl" "mx-auto" "justify-end" "px-6" "pb-6"]}
      ($ Exchanges)
      ($ Footer)))
 
@@ -77,7 +124,7 @@
                                       :on-click #(dispatch [:set-selected-model (:name model)])}
                          (<>
                           model-name
-                          ($ :span {:class ["opacity-50" "mr-1"]} ":" model-version)))))))))
+                          ($ :span {:class ["opacity-50" "grow"]} ":" model-version)))))))))
        ($ :div {:class ["flex" "items-center" "my-3" "gap-3"]}
           ($ MessagesSquare)
           ($ :p {:class ["text-lg"]}

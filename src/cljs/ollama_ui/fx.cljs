@@ -42,6 +42,13 @@
 
 (reg-fx :fetch fetch-effect)
 
+(defn- parse-chunk [chunk]
+  (try
+    (j/get (js/JSON.parse chunk) :response)
+    (catch js/Error e
+      (js/console.log "chunk parse error" e chunk)
+      chunk)))
+
 (defn request->fetch-stream
   [{:as   request
     :keys [url body on-success on-progress on-failure]
@@ -71,7 +78,7 @@
                   (let [{:keys [buffer]} data
                         chunk (-> (new js/TextDecoder)
                                   (j/call :decode value))
-                        text (j/get (js/JSON.parse chunk) :response)
+                        text (parse-chunk chunk)
                         new-line? (= "\n" text)
                         idx (if new-line?
                               (inc (:idx data))
