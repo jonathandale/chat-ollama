@@ -52,7 +52,7 @@
           ($ SendHorizontal)))))
 
 (defnc Message [{:keys [user? children]}]
-  ($ :div {:class ["rounded-md" "px-3.5" "py-2.5" "max-w-[75%] min-"
+  ($ :div {:class ["rounded-md" "px-3.5" "py-2.5" "max-w-[75%]"
                    (if user?
                      "bg-white text-gray-900 place-self-end"
                      "bg-gray-700/50 text-white place-self-start flex flex-col gap-2")]}
@@ -159,7 +159,7 @@
         "Ollama UI requires an active Ollama server to work")
      ($ :div {:class ["rounded-md" "bg-white/5" "py-3" "px-4" "text-white" "font-mono" "text-sm"]}
         ($ :span {:class ["text-white/25" "mr-2" "select-none"]} "$")
-        "ollama serve")))
+        "OLLAMA_ORIGINS=tauri://localhost:* ollama serve")))
 
 (defnc Main []
 

@@ -1,6 +1,5 @@
 (ns ollama-ui.events
-  (:require ["date-fns" :refer [getUnixTime]]
-            [applied-science.js-interop :as j]
+  (:require [applied-science.js-interop :as j]
             [cljs.spec.alpha :as s]
             [ollama-ui.db :refer [default-db]]
             [refx.alpha :refer [->interceptor reg-event-db reg-event-fx]]
@@ -156,7 +155,6 @@
  (fn [{:keys [db]} [_ {:keys [prompt] :as payload}]]
    {:fetch-stream {:url (str api-base "/api/generate")
                    :method :post
-                   :headers {:Content-Type "application/json"}
                    :body {:model (:selected-model db)
                           :prompt prompt}
                    :on-progress [:get-answer-progress payload]

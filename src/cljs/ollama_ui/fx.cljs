@@ -1,14 +1,11 @@
 (ns ollama-ui.fx
-  (:require ["@tauri-apps/api/http" :as tauri-http]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
+            [promesa.core :as p]
             [applied-science.js-interop :as j]
             [cljs-bean.core :refer [->clj ->js]]
-            [clojure.core.async :refer [<! go timeout]]
-            [cljs.core.async.interop :refer-macros [<p!]]
             [refx.alpha :refer [dispatch reg-fx]]))
 
 (defonce tauri? (some? (j/get js/window :__TAURI__)))
-(defonce fetch (if tauri? tauri-http/fetch js/fetch))
 
 (defn request->fetch
   [{:as   request
@@ -22,7 +19,7 @@
                   (update :body #(as-> % $
                                    (->js $)
                                    (j/call js/JSON :stringify $))))]
-    (-> (fetch url (->js options))
+    (-> (js/fetch url (->js options))
         (.then (fn [response]
                  (if (j/get response :ok)
                    (let [data (j/get response :data)]
@@ -55,38 +52,35 @@
     :or   {on-success [:http-no-on-success]
            on-progress [:http-no-on-progress]
            on-failure [:http-no-on-failure]}}]
-  (let [pruned (dissoc request :on-success :on-failure :url)
-        options (cond-> pruned
-                  (some? body)
-                  (update :body #(as-> % $
-                                   (->js $)
-                                   (j/call js/JSON :stringify $))))]
-    (go
-      (let [response (<p! (fetch url (->js options)))]
-        (if-not (j/get response :ok)
-          (dispatch (conj on-failure request))
-          (let [reader (-> response
+  (try
+    (p/let [response (js/fetch url #js{:method "post"
+                                       :body (j/call js/JSON :stringify (->js body))})]
+      (if-not (j/get response :ok)
+        (dispatch (conj on-failure request))
+        (p/let [reader (-> response
                            (j/get :body)
                            (j/call :getReader))]
-
-            (loop [data {:buffer ""
+          #_{:clj-kondo/ignore [:unresolved-symbol]}
+          (p/loop [data {:buffer ""
                          :idx 0}]
-              (let [{:keys [done value]}
-                    (j/lookup (<p! (j/call reader :read)))]
-                (if done
-                  (dispatch (conj on-success (:buffer data)))
-                  (let [{:keys [buffer]} data
-                        chunk (-> (new js/TextDecoder)
-                                  (j/call :decode value))
-                        text (parse-chunk chunk)
-                        new-line? (= "\n" text)
-                        idx (if new-line?
-                              (inc (:idx data))
-                              (:idx data))]
-                    (dispatch (conj on-progress {:text text
-                                                 :new-line? new-line?
-                                                 :idx (:idx data)}))
-                    (recur {:buffer (str buffer text)
-                            :idx idx})))))))))))
+            (p/let [read (j/call reader :read)
+                    done (j/get read :done)
+                    value (j/get read :value)]
+              (if done
+                (dispatch (conj on-success (:buffer data)))
+                (let [{:keys [buffer]} data
+                      chunk (j/call (new js/TextDecoder) :decode value)
+                      text (parse-chunk chunk)
+                      new-line? (= "\n" text)
+                      idx (if new-line?
+                            (inc (:idx data))
+                            (:idx data))]
+                  (dispatch (conj on-progress {:text text
+                                               :new-line? new-line?
+                                               :idx (:idx data)}))
+                  (p/recur {:buffer (str buffer text)
+                            :idx idx}))))))))
+    (catch js/Error error
+      (js/console.log "Error" error))))
 
 (reg-fx :fetch-stream request->fetch-stream)
