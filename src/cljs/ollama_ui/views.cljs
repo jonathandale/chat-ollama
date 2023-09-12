@@ -11,6 +11,7 @@
 
 (defonce max-textarea-height 500)
 (defonce min-textarea-height 50)
+(defonce line-height 34)
 
 (defnc Ollama []
   ($ :svg {:class ["fill-gray-900" "w-[21px]" "h-[27px]"]
@@ -79,16 +80,22 @@
 
 (defnc Dialog []
   (let [ref! (use-ref nil)
-        auto-scroll? (use-ref false)
         exchanges (use-sub [:dialog-exchanges])
         selected-model (use-sub [:selected-model])]
 
     (use-effect
      [exchanges]
-     (when (and @auto-scroll?
-                (some? @ref!))
-       (let [scroll-height (j/get @ref! :scrollHeight)]
-         (j/assoc! @ref! :scrollTop scroll-height))))
+     (when (some? @ref!)
+       (let [height (-> @ref!
+                        (j/call :getBoundingClientRect)
+                        (j/get :height))
+             scroll-height (j/get @ref! :scrollHeight)
+             scroll-top (j/get @ref! :scrollTop)
+             scroll-amount (- (- scroll-height height) scroll-top)]
+         (when (<= scroll-amount line-height)
+           (j/assoc! @ref!
+                     :scrollTop
+                     (j/get @ref! :scrollHeight))))))
 
     ($ :div {:class ["flex" "flex-col" "relative" "w-full" "h-screen"]}
        ($ :div {:ref ref!
@@ -107,7 +114,7 @@
                        (for [[idx text] answer]
                          ($ :p {:class []
                                 :key idx} text))
-                       ($ :div {:class ["flex" "flex-col" "gap-2" "my-1" "animate-pulse"]}
+                       ($ :div {:class ["flex" "flex-col" "gap-2" "my-1" "animate-pulse" "min-w-[250px]"]}
                           ($ :div {:class ["h-2" "bg-white/20" "rounded"]})
                           ($ :div {:class ["h-2" "bg-white/20" "rounded" "w-[75%]"]}))))))))
        ($ Footer))))
