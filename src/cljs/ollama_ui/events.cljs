@@ -3,7 +3,8 @@
             [cljs.spec.alpha :as s]
             [ollama-ui.db :refer [default-db]]
             [refx.alpha :refer [->interceptor reg-event-db reg-event-fx]]
-            [refx.interceptors :refer [after]]))
+            [refx.interceptors :refer [after]]
+            ["date-fns" :refer (getUnixTime)]))
 
 (defonce api-base "http://127.0.0.1:11434")
 (defonce wait-for 2000)
@@ -101,7 +102,7 @@
  ollama-interceptors
  (fn [{:keys [db]} [_ {:keys [model-name set-selected?]}]]
    (let [new-uuid (str (random-uuid))
-         timestamp (j/call js/Date :now)]
+         timestamp (getUnixTime (new js/Date))]
      (cond-> {:db (-> db
                       (assoc-in [:dialogs new-uuid]
                                 {:uuid new-uuid
@@ -116,10 +117,15 @@
  ollama-interceptors
  (fn [{:keys [db]} [_ {:keys [selected-dialog prompt]}]]
    (let [new-uuid (str (random-uuid))
-         timestamp (j/call js/Date :now)]
-     {:db (assoc-in db [:dialogs selected-dialog :exchanges new-uuid]
-                    {:prompt prompt
-                     :timestamp timestamp})
+         timestamp (getUnixTime (new js/Date))
+         first-prompt? (nil? (get-in db [:dialogs selected-dialog :exchanges]))]
+     {:db (cond-> db
+            :always
+            (assoc-in [:dialogs selected-dialog :exchanges new-uuid]
+                      {:prompt prompt
+                       :timestamp timestamp})
+            first-prompt?
+            (assoc-in [:dialogs selected-dialog :title] prompt))
       :dispatch [:get-answer {:prompt prompt
                               :dialog-uuid selected-dialog
                               :exchange-uuid new-uuid}]})))

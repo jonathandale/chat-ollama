@@ -3,11 +3,11 @@
             [clojure.string :as str]
             [clojure.set :refer [union]]
             [ollama-ui.lib :refer [defnc debounce]]
-            [helix.core :refer [$ <>]]
+            [helix.core :refer [$]]
             [helix.hooks :refer [use-effect use-state use-ref]]
             [refx.alpha :refer [use-sub dispatch]]
-            ["lucide-react" :refer [ArrowRight Component Check User
-                                    Plus MessagesSquare SendHorizontal]]))
+            ["date-fns" :refer (formatDistance fromUnixTime)]
+            ["lucide-react" :refer [User MessagesSquare SendHorizontal]]))
 
 (defonce max-textarea-height 500)
 (defonce min-textarea-height 50)
@@ -55,7 +55,7 @@
                         :onKeyPress on-key-press
                         :rows 1
                         :class ["w-full" "resize-none" "rounded-md" "border" "border-transparent"
-                                "px-4" "py-3" "bg-gray-800/50" "text-base" "font-normal"
+                                "pl-4" "pr-12" "py-3" "bg-gray-800/50" "text-base" "font-normal"
                                 "text-white" "outline-none" "focus:bg-gray-800/75" "bottom-0"
                                 "placeholder:text-white/40"]})
           ($ :button {:class ["absolute" "right-3" "bottom-10" "mb-0.5" "z-20"
@@ -64,10 +64,10 @@
              ($ SendHorizontal))))))
 
 (defnc Message [{:keys [user? children]}]
-  ($ :div {:class ["xl:max-w-[75%]" "flex" "gap-3"
+  ($ :div {:class ["lg:max-w-[75%]" "flex" "gap-3"
                    (if user? "place-self-end flex-row-reverse" "place-self-start")]}
      ($ :div {:class ["rounded" "w-8" "h-8" "shrink-0" "flex" "justify-center"
-                      (if user? "items-center bg-gray-800/75" " items-end bg-white")]}
+                      (if user? "items-center bg-gray-700/75" " items-end bg-white")]}
         (if user?
           ($ User)
           ($ Ollama)))
@@ -113,62 +113,49 @@
        ($ Footer))))
 
 (defnc SidebarItem [{:keys [selected? on-click children]}]
-  (let [class #{"bg-gray-800/80" "hover:bg-gray-800"}
-        selected-class #{"bg-white" "text-gray-900" "cursor-pointer"}]
-    ($ :button {:class (vec (union #{"flex" "justify-between" "items-center" "pl-3" "pr-2"
-                                     "py-1.5" "text-sm" "w-full" "text-left" "rounded-sm"}
+  (let [class #{"border-transparent"}
+        selected-class #{"text-white" "cursor-default" "bg-gray-800/50" "border-sky-600"}]
+    ($ :button {:class (vec (union #{"px-3" "py-1.5" "text-sm" "w-full" "text-left" "rounded"
+                                     "hover:bg-gray-800/60" "border-l-4"}
                                    (if selected? selected-class class)))
                 :on-click on-click}
-       children
-       (if selected?
-         ($ Check)
-         ($ ArrowRight)))))
+       children)))
 
 (defnc Sidebar []
   (let [selected-model (use-sub [:selected-model])
         selected-dialog (use-sub [:selected-dialog])
-        models (use-sub [:models])
-        model-dialogs (use-sub [:model-dialogs])]
+        dialogs (use-sub [:dialogs])]
 
     ($ :div {:data-tauri-drag-region true
-             :class ["dark:bg-gray-950/50" "w-[350px]" "flex" "flex-col" "shrink-0" "p-6"]}
-       ($ :div {:class ["mb-8"]}
-          ($ :div {:class ["flex" "items-center" "my-3" "gap-3"]}
-             ($ Component)
-             ($ :p {:class ["text-lg"]}
-                "Models"))
-          ($ :ul {:class ["flex" "flex-col" "gap-y-2"]}
-             (when (seq models)
-               (for [model models]
-                 (let [[model-name model-version] (str/split (:name model) #":")
-                       selected? (= selected-model (:name model))]
-                   ($ :li {:key (:digest model)}
-                      ($ SidebarItem {:selected? selected?
-                                      :on-click #(dispatch [:set-selected-model (:name model)])}
-                         (<>
-                          model-name
-                          ($ :span {:class ["opacity-50" "grow"]} ":" model-version)))))))))
-       ($ :div {:class ["flex" "items-center" "my-3" "gap-3"]}
+             :class ["dark:bg-gray-950/50" "w-[350px]" "flex" "flex-col" "shrink-0" "px-6"]}
+       ($ :div {:class ["flex" "items-center" "mb-4" "gap-3" "mt-12"]}
           ($ MessagesSquare)
           ($ :p {:class ["text-lg"]}
              "Dialogs"
-             ($ :span {:class ["opacity-50" "ml-2"]} (count model-dialogs))))
+             ($ :span {:class ["opacity-50" "ml-2"]} (count dialogs))))
        ($ :div {:class ["grow" "overflow-scroll"]}
           ($ :ul {:class ["flex" "flex-col" "gap-y-2"]}
-             (if (seq model-dialogs)
-               (for [model-dialog model-dialogs]
-                 (let [selected? (= selected-dialog (:uuid model-dialog))]
-                   ($ :li {:key (:uuid model-dialog)}
+             (if (seq dialogs)
+               (for [[uuid dialog] dialogs]
+                 (let [selected? (= selected-dialog uuid)
+                       [model-name model-version] (str/split (:name dialog) #":")]
+                   ($ :li {:key uuid}
                       ($ SidebarItem {:selected? selected?
-                                      :on-click #(dispatch [:set-selected-dialog (:uuid model-dialog)])}
-                         ($ :p {} (:timestamp model-dialog))))))
+                                      :on-click #(do
+                                                   (dispatch [:set-selected-dialog uuid])
+                                                   (dispatch [:set-selected-model (:name dialog)]))}
+                         ($ :p {:class ["truncate" (when-not (:title dialog) "italic opacity-75")]} (or (:title dialog) "New Chat"))
+                         ($ :div {:class ["flex" "items-center" "justify-between"]}
+                            ($ :p {:class ["text-xs" "text-gray-100"]}
+                               model-name
+                               ($ :span {:class ["opacity-50" "grow"]} ":" model-version))
+                            ($ :p {:class ["text-xs" "text-gray-300/50"]}
+                               (formatDistance
+                                (fromUnixTime (:timestamp dialog))
+                                (new js/Date)
+                                #js {:addSuffix true})))))))
                ($ :p {:class ["text-white/40"]}
-                  (str "No dialogs found for " selected-model)))))
-       ($ :button {:class ["flex" "justify-between" "w-full" "rounded-sm" "mt-6" "px-3" "py-2" "bg-sky-600" "text-white"]
-                   :on-click #(dispatch [:new-dialog {:model-name selected-model
-                                                      :set-selected? true}])}
-          "Add Dialog"
-          ($ Plus)))))
+                  (str "No dialogs found for " selected-model))))))))
 
 (defnc Offline []
   ($ :div {:data-tauri-drag-region true

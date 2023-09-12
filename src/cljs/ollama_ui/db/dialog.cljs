@@ -12,6 +12,6 @@
 (s/def ::dialog (s/keys :req-un [::uuid
                                  ::model/name
                                  ::timestamp]
-                        :opt-un [::exchanges]))
+                        :opt-un [::exchanges ::prompt]))
 (s/def ::dialogs (s/nilable (s/map-of ::uuid ::dialog)))
 (s/def ::selected-dialog (s/nilable ::uuid))
