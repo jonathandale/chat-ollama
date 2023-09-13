@@ -15,7 +15,7 @@
 
 (defnc root-view []
   ($ :div {:data-tauri-drag-region true
-           :class ["h-screen" "w-screen" "bg-white" "overflow-hidden" "dark:bg-gray-900"]}
+           :class ["h-screen" "w-screen" "bg-white" "overflow-hidden" "dark:bg-gray-900" "bg-white" "text-gray-900"]}
      ($ views/Main)))
 
 (defonce root (rdc/createRoot (js/document.getElementById "root")))
