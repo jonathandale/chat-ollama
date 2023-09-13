@@ -1,11 +1,8 @@
 (ns ollama-ui.fx
-  (:require [clojure.string :as str]
-            [promesa.core :as p]
+  (:require [promesa.core :as p]
             [applied-science.js-interop :as j]
             [cljs-bean.core :refer [->clj ->js]]
             [refx.alpha :refer [dispatch reg-fx]]))
-
-(defonce tauri? (some? (j/get js/window :__TAURI__)))
 
 (defn request->fetch
   [{:as   request

@@ -2,7 +2,6 @@
   (:require [ollama-ui.lib :refer [defnc]]
             [helix.core :refer [$]]
             [refx.alpha :as refx :refer [dispatch-sync]]
-            [refx.http]
             [ollama-ui.fx]
             [ollama-ui.events]
             [ollama-ui.subs]
@@ -14,8 +13,7 @@
 (dispatch-sync [:initialise-db])
 
 (defnc root-view []
-  ($ :div {:data-tauri-drag-region true
-           :class ["h-screen" "w-screen" "bg-white" "overflow-hidden" "dark:bg-gray-900" "bg-white" "text-gray-900"]}
+  ($ :div {:class ["h-screen" "w-screen" "bg-white" "overflow-hidden" "dark:bg-gray-900" "bg-white" "text-gray-900"]}
      ($ views/Main)))
 
 (defonce root (rdc/createRoot (js/document.getElementById "root")))

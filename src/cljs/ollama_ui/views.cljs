@@ -136,9 +136,8 @@
         selected-dialog (use-sub [:selected-dialog])
         dialogs (use-sub [:dialogs])]
 
-    ($ :div {:data-tauri-drag-region true
-             :class ["dark:bg-gray-950/50" "bg-gray-50/50" "w-[350px]" "flex" "flex-col" "shrink-0" "px-6"]}
-       ($ :div {:class ["flex" "items-center" "mb-4" "gap-3" "mt-12"]}
+    ($ :div {:class ["dark:bg-gray-950/50" "bg-gray-50/50" "w-[350px]" "flex" "flex-col" "shrink-0" "px-6"]}
+       ($ :div {:class ["flex" "items-center" "mb-4" "gap-3" "mt-6"]}
           ($ MessagesSquare)
           ($ :p {:class ["text-lg"]}
              "Dialogs"
@@ -168,8 +167,7 @@
                   (str "No dialogs found for " selected-model))))))))
 
 (defnc Offline []
-  ($ :div {:data-tauri-drag-region true
-           :class ["flex" "flex-col" "grow" "w-full" "justify-center" "items-center"]}
+  ($ :div {:class ["flex" "flex-col" "grow" "w-full" "justify-center" "items-center"]}
      ($ :img {:class ["w-20" "h-auto" "mb-10" "pointer-events-none"]
               :src "/assets/ollama-asleep.svg"
               :alt "Looks like Ollama is Offline"})
@@ -179,7 +177,7 @@
         "Ollama UI requires an active Ollama server to work")
      ($ :div {:class ["rounded-md" "bg-white/5" "py-3" "px-4" "text-white" "font-mono" "text-sm"]}
         ($ :span {:class ["text-white/25" "mr-2" "select-none"]} "$")
-        "OLLAMA_ORIGINS=tauri://localhost:* ollama serve")))
+        "ollama serve")))
 
 (defnc Main []
   (use-effect

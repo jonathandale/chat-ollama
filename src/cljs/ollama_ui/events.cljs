@@ -1,6 +1,5 @@
 (ns ollama-ui.events
-  (:require [applied-science.js-interop :as j]
-            [cljs.spec.alpha :as s]
+  (:require [cljs.spec.alpha :as s]
             [ollama-ui.db :refer [default-db]]
             [refx.alpha :refer [->interceptor reg-event-db reg-event-fx]]
             [refx.interceptors :refer [after]]

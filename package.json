@@ -10,24 +10,20 @@
     "build-css": "npx tailwindcss -i ./src/css/style.css -o ./public/style.css",
     "build-app": "shadow-cljs release app",
     "build": "npm run build-css && npm run build-app",
-    "shadow-cljs": "shadow-cljs",
-    "tauri": "tauri"
+    "shadow-cljs": "shadow-cljs"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^1.4.0",
     "concurrently": "^8.2.1",
     "shadow-cljs": "^2.25.3",
     "tailwindcss": "^3.3.3"
   },
   "dependencies": {
     "@react-spring/web": "^9.7.3",
-    "@tauri-apps/api": "^1.4.0",
     "date-fns": "^2.30.0",
     "lucide-react": "^0.274.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-refresh": "^0.14.0",
-    "tauri-plugin-store-api": "https://github.com/tauri-apps/tauri-plugin-store#v1",
     "use-sync-external-store": "^1.2.0"
   }
 }
