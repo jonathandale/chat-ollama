@@ -10,6 +10,7 @@
     "build-css": "npx tailwindcss -i ./src/css/style.css -o ./public/style.css",
     "build-app": "shadow-cljs release app",
     "build": "npm run build-css && npm run build-app",
+    "serve": "npx shadow-cljs server",
     "shadow-cljs": "shadow-cljs"
   },
   "devDependencies": {
