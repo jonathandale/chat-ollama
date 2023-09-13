@@ -169,7 +169,7 @@
 (defnc Offline []
   ($ :div {:class ["flex" "flex-col" "grow" "w-full" "justify-center" "items-center"]}
      ($ :img {:class ["w-20" "h-auto" "mb-10" "pointer-events-none"]
-              :src "/assets/ollama-asleep.svg"
+              :src "./assets/ollama-asleep.svg"
               :alt "Looks like Ollama is Offline"})
      ($ :h1 {:class ["text-white" "text-3xl" "select-none" "pointer-events-none"]}
         "Looks like Ollama is asleep!")
