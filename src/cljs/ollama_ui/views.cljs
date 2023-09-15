@@ -3,14 +3,16 @@
             [clojure.string :as str]
             [clojure.set :refer [union]]
             [ollama-ui.lib :refer [defnc debounce]]
+            [ollama-ui.hooks :refer [use-copy-to-clipboard]]
             [helix.core :refer [$]]
             [helix.hooks :refer [use-effect use-state use-ref]]
             [refx.alpha :refer [use-sub dispatch]]
             ["date-fns" :refer (formatDistance fromUnixTime)]
-            ["lucide-react" :refer [User MessagesSquare SendHorizontal]]))
+            ["lucide-react" :refer [Clipboard Check
+                                    User MessagesSquare SendHorizontal]]))
 
 (defonce max-textarea-height 500)
-(defonce min-textarea-height 42)
+(defonce min-textarea-height 48)
 (defonce line-height 34)
 
 (defnc Ollama []
@@ -55,12 +57,11 @@
                         :onChange #(slowly-set-prompt! (j/get-in % [:target :value]))
                         :onKeyPress on-key-press
                         :rows 1
-                        :class ["w-full" "resize-none" "rounded-sm" "border" "border-transparent" "relative" "z-10" "h-12"
-                                "pl-3" "pr-10" "py-2" "dark:bg-gray-900" "bg-white" "text-base" "font-normal"
-                                "dark:text-white" "outline-none" "dark:bg-gray-900" "bottom-0" "dark:outline-gray-700"
-                                "dark:placeholder:text-white/40" "outline-gray-100" "focus:outline-gray-200/75"
-                                "dark:focus:outline-gray-600"]})
-          ($ :button {:class ["absolute" "right-2" "bottom-9" "mb-0.5" "z-20" "dark:text-white" "text-gray-700"
+                        :class ["w-full" "resize-none" "rounded" "border" "border-transparent" "relative" "z-10" "h-12"
+                                "pl-3.5" "pr-10" "py-2.5" "dark:bg-gray-950" "bg-white" "text-base" "font-normal"
+                                "dark:text-white" "outline-none" "dark:bg-gray-900" "bottom-0"
+                                "dark:placeholder:text-white/40"]})
+          ($ :button {:class ["absolute" "right-3.5" "bottom-9" "mb-1.5" "z-20" "dark:text-white" "text-gray-700"
                               (when-not (seq prompt) "opacity-20")]
                       :on-click send!}
              ($ SendHorizontal))))))
@@ -84,7 +85,8 @@
 (defnc Dialog []
   (let [ref! (use-ref nil)
         exchanges (use-sub [:dialog-exchanges])
-        selected-model (use-sub [:selected-model])]
+        selected-model (use-sub [:selected-model])
+        [model-name model-version] (str/split selected-model #":")]
 
     (use-effect
      [exchanges]
@@ -103,7 +105,9 @@
     ($ :div {:class ["flex" "flex-col" "relative" "w-full" "h-screen"]}
        ($ :div {:ref ref!
                 :class ["relative" "grow" "flex" "flex-col" "w-full" "overflow-scroll"]}
-          ($ :p {:class ["text-white" "mx-auto" "py-6" "dark:text-white/30" "text-gray-300"]} selected-model)
+          ($ :p {:class ["text-sm" "dark:text-gray-100" "text-gray-500" "text-center" "p-6"]}
+             model-name
+             ($ :span {:class ["opacity-50"]} ":" model-version))
           ($ :div {:class ["flex" "flex-col" "w-full" "grow" "max-w-5xl" "mx-auto" "justify-end" "px-6" "pt-6" "pb-32"]}
              (for [{:keys [prompt answer timestamp]} exchanges]
                ($ :div {:class ["flex" "flex-col" "gap-3" "mt-3"]
@@ -136,7 +140,7 @@
         selected-dialog (use-sub [:selected-dialog])
         dialogs (use-sub [:dialogs])]
 
-    ($ :div {:class ["dark:bg-gray-950/50" "bg-gray-50/50" "w-[350px]" "flex" "flex-col" "shrink-0" "px-6"]}
+    ($ :div {:class ["dark:bg-gray-950" "bg-gray-50/50" "w-[350px]" "flex" "flex-col" "shrink-0" "px-6"]}
        ($ :div {:class ["flex" "items-center" "mb-4" "gap-3" "mt-6"]}
           ($ MessagesSquare)
           ($ :p {:class ["text-lg"]}
@@ -167,17 +171,23 @@
                   (str "No dialogs found for " selected-model))))))))
 
 (defnc Offline []
-  ($ :div {:class ["flex" "flex-col" "grow" "w-full" "justify-center" "items-center"]}
-     ($ :img {:class ["w-20" "h-auto" "mb-10" "pointer-events-none"]
-              :src "./assets/ollama-asleep.svg"
-              :alt "Looks like Ollama is Offline"})
-     ($ :h1 {:class ["text-white" "text-3xl" "select-none" "pointer-events-none"]}
-        "Looks like Ollama is asleep!")
-     ($ :h2 {:class ["text-lg" "text-gray-500" "mb-10" "select-none" "pointer-events-none"]}
-        "Ollama UI requires an active Ollama server to work")
-     ($ :div {:class ["rounded-md" "bg-white/5" "py-3" "px-4" "text-white" "font-mono" "text-sm"]}
-        ($ :span {:class ["text-white/25" "mr-2" "select-none"]} "$")
-        "ollama serve")))
+  (let [[copied copy!] (use-copy-to-clipboard)]
+    ($ :div {:class ["flex" "flex-col" "grow" "w-full" "justify-center" "items-center"]}
+       ($ :img {:class ["w-20" "h-auto" "mb-10" "pointer-events-none"]
+                :src "./assets/ollama-asleep.svg"
+                :alt "Looks like Ollama is Offline"})
+       ($ :h1 {:class ["text-white" "text-3xl" "select-none" "pointer-events-none"]}
+          "Looks like Ollama is asleep!")
+       ($ :h2 {:class ["text-lg" "text-white/40" "mb-10" "select-none" "pointer-events-none"]}
+          "Ollama UI requires an active Ollama server to work")
+       ($ :div {:class ["flex" "items-center" "rounded-md" "bg-white/5" "py-2" "pr-2" "pl-4" "text-white" "font-mono" "text-sm"]}
+          ($ :span {:class ["text-white/25" "mr-3" "select-none"]} "$")
+          "ollama serve"
+          ($ :button {:class ["ml-6" "p-2" "rounded-sm" "hover:bg-gray-900"]
+                      :on-click #(copy! "ollama serve")}
+             (if copied
+               ($ Check {:size 16})
+               ($ Clipboard {:size 16})))))))
 
 (defnc Main []
   (use-effect
