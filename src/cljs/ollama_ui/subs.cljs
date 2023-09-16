@@ -41,6 +41,13 @@
    (:selected-dialog db)))
 
 (reg-sub
+ :dialog
+ :<- [:dialogs]
+ (fn [dialogs [_ dialog-uuid]]
+   (get dialogs dialog-uuid)))
+
+
+(reg-sub
  :dialog-exchanges
  (fn [_ _]
    [(sub [:selected-dialog])

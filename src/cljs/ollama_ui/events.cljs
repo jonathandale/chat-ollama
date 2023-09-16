@@ -60,18 +60,9 @@
  :get-models-success
  ollama-interceptors
  (fn [{:keys [db]} [_ {:keys [models]}]]
-   (let [selected-model (:name (first models))]
-     {:db (assoc db
-                 :models models
-                 :ollama-offline? false)
-      :dispatch-n (into [(when (nil? (:selected-model db))
-                           [:set-selected-model selected-model])]
-                        (mapv (fn [model]
-                                [:new-dialog
-                                 (cond-> {:model-name (:name model)}
-                                   (= selected-model (:name model))
-                                   (assoc :set-selected? true))])
-                              models))})))
+   {:db (assoc db
+               :models models
+               :ollama-offline? false)}))
 
 (reg-event-db
  :get-models-failure
@@ -99,16 +90,16 @@
 (reg-event-fx
  :new-dialog
  ollama-interceptors
- (fn [{:keys [db]} [_ {:keys [model-name set-selected?]}]]
+ (fn [{:keys [db]} [_ model-name]]
    (let [new-uuid (str (random-uuid))
          timestamp (getUnixTime (new js/Date))]
-     (cond-> {:db (-> db
-                      (assoc-in [:dialogs new-uuid]
-                                {:uuid new-uuid
-                                 :name model-name
-                                 :timestamp timestamp}))}
-       set-selected?
-       (assoc :dispatch [:set-selected-dialog new-uuid])))))
+     {:db (-> db
+              (assoc-in [:dialogs new-uuid]
+                        {:uuid new-uuid
+                         :model-name model-name
+                         :timestamp timestamp})
+              (assoc :selected-model model-name
+                     :selected-dialog new-uuid))})))
 
 ;; PROMPTS
 (reg-event-fx

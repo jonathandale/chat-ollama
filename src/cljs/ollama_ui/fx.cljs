@@ -9,7 +9,7 @@
     :keys [url body on-success on-failure]
     :or   {on-success [:http-no-on-success]
            on-failure [:http-no-on-failure]}}]
-  (let [success-> #(dispatch (conj on-success (->clj %)))
+  (let [success-> #(dispatch (conj on-success (js->clj % :keywordize-keys true)))
         pruned (dissoc request :on-success :on-failure :url)
         options (cond-> pruned
                   (some? body)

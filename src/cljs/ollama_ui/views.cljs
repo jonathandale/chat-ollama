@@ -4,16 +4,19 @@
             [clojure.set :refer [union]]
             [ollama-ui.lib :refer [defnc debounce]]
             [ollama-ui.hooks :refer [use-copy-to-clipboard]]
-            [helix.core :refer [$]]
+            [helix.core :refer [$ <>]]
             [helix.hooks :refer [use-effect use-state use-ref]]
             [refx.alpha :refer [use-sub dispatch]]
-            ["date-fns" :refer (formatDistance fromUnixTime)]
-            ["lucide-react" :refer [Clipboard Check
+            ["date-fns" :refer (formatDistance fromUnixTime parseISO)]
+            ["lucide-react" :refer [Clipboard Check Plus
                                     User MessagesSquare SendHorizontal]]))
 
 (defonce max-textarea-height 500)
 (defonce min-textarea-height 48)
 (defonce line-height 34)
+
+(defn- b->gb [bytes]
+  (j/call (/ bytes 1024 1024 1024) :toFixed 2))
 
 (defnc Ollama []
   ($ :svg {:class ["dark:fill-gray-900" "fill-white" "w-[21px]" "h-[27px]"]
@@ -87,7 +90,6 @@
         exchanges (use-sub [:dialog-exchanges])
         selected-model (use-sub [:selected-model])
         [model-name model-version] (str/split selected-model #":")]
-
     (use-effect
      [exchanges]
      (when (some? @ref!)
@@ -151,7 +153,7 @@
              (if (seq dialogs)
                (for [[uuid dialog] dialogs]
                  (let [selected? (= selected-dialog uuid)
-                       [model-name model-version] (str/split (:name dialog) #":")]
+                       [model-name model-version] (str/split (:model-name dialog) #":")]
                    ($ :li {:key uuid}
                       ($ SidebarItem {:selected? selected?
                                       :on-click #(do
@@ -189,14 +191,58 @@
                ($ Check {:size 16})
                ($ Clipboard {:size 16})))))))
 
+(defnc StartDialog []
+  (let [models (use-sub [:models])]
+    (<>
+     ($ :h1 {:class ["text-white" "text-3xl" "select-none" "pointer-events-none"]}
+        "Start a new Dialog")
+     ($ :h2 {:class ["text-lg" "text-white/40" "mb-10" "select-none" "pointer-events-none"]}
+        "Choose which model you want to send messages to")
+     ($ :ul {:class ["text-white" "bg-gray-800/40" "w-full" "max-w-2xl" "overflow-scroll"
+                     "rounded" "border" "border-gray-700/40" "divide-y" "divide-gray-700/50"]}
+        (for [model models]
+          (let [[model-name model-version] (str/split (:name model) #":")]
+            ($ :li {:class []
+                    :key (:digest model)}
+               ($ :button {:class ["text-left" "w-full" "hover:bg-white/5" "pl-3" "pr-5" "py-2"
+                                   "flex" "items-center" "justify-between"]
+                           :on-click #(dispatch [:new-dialog (:name model)])}
+                  ($ :div
+                     ($ :p {:class ["text-lg"]}
+                        model-name
+                        ($ :span {:class ["opacity-50"]} ":" model-version))
+                     ($ :p {:class ["flex" "text-sm" "gap-3"]}
+                        ($ :span {:class ["opacity-60"]}
+                           (formatDistance
+                            (parseISO (:modified_at model))
+                            (new js/Date)
+                            #js {:addSuffix true}))
+                        ($ :span {:class ["opacity-40"]}
+                           (b->gb (:size model)) "GB")
+                        ($ :span {:class ["opacity-20"]}
+                           (subs (:digest model) 0 7))))
+                  ($ Plus)))))))))
+
 (defnc Main []
-  (use-effect
-   :once
-   (dispatch [:get-models]))
-  (let [ollama-offline? (use-sub [:ollama-offline?])]
+  (let [ollama-offline? (use-sub [:ollama-offline?])
+        dialogs (use-sub [:dialogs])]
+
+    (use-effect
+     :once
+     (dispatch [:get-models]))
+
     ($ :div {:class ["flex" "w-full" "h-full"]}
-       (if ollama-offline?
+       (cond
+         ollama-offline?
          ($ Offline)
+
+         (seq dialogs)
          ($ :div {:class ["flex" "dark:text-white" "relative" "w-full"]}
             ($ Sidebar)
-            ($ Dialog))))))
+            ($ Dialog))
+
+         :else
+         ($ :div {:class ["flex" "flex-col" "grow" "w-full"
+                          "justify-center" "items-center"
+                          "py-20"]}
+            ($ StartDialog))))))
