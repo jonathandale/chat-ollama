@@ -2,7 +2,8 @@
   (:require [applied-science.js-interop :as j]
             [clojure.string :as str]
             [clojure.set :refer [union]]
-            [ollama-ui.lib :refer [defnc debounce]]
+            [ollama-ui.lib :refer [defnc]]
+            [ollama-ui.utils :refer [debounce local-storage-set! local-storage-get]]
             [ollama-ui.hooks :refer [use-copy-to-clipboard]]
             [helix.core :refer [$ <>]]
             [helix.hooks :refer [use-effect use-state use-ref]]
@@ -15,6 +16,7 @@
 (defonce max-textarea-height 500)
 (defonce min-textarea-height 48)
 (defonce line-height 34)
+(defonce ls-ollama-ui-prefs "ollama-ui:prefs:")
 
 (defn- b->gb [bytes]
   (j/call (/ bytes 1024 1024 1024) :toFixed 2))
@@ -59,7 +61,7 @@
                                    (j/get @ref! :scrollHeight))) "px"))))
 
     ($ :div {:class ["absolute" "bottom-0" "inset-x-0"]}
-       ($ :div {:class ["dark:bg-gray-900" "bg-white" "z-10" "max-w-4xl" "mx-auto" "absolute" "bottom-0" "px-0" "pb-6" "inset-x-6"]}
+       ($ :div {:class ["dark:bg-gray-900" "bg-white" "z-10" "max-w-5xl" "mx-auto" "absolute" "bottom-0" "pb-6" "inset-x-6"]}
           ($ :div {:class ["z-0" "absolute" "top-0" "-translate-y-full" "inset-x-0" "h-16"
                            "bg-gradient-to-t" "dark:from-gray-900" "from-white" "to-transparent" "pointer-events-none"]})
           ($ :textarea {:ref ref!
@@ -67,10 +69,11 @@
                         :onChange #(slowly-set-prompt! (j/get-in % [:target :value]))
                         :onKeyPress on-key-press
                         :rows 1
-                        :class ["w-full" "resize-none" "rounded" "border" "border-transparent" "relative" "z-10" "h-12"
-                                "pl-3.5" "pr-10" "py-2.5" "dark:bg-gray-950" "bg-white" "text-base" "font-normal"
-                                "dark:text-white" "outline-none" "dark:bg-gray-900" "bottom-0"
-                                "dark:placeholder:text-white/40"]})
+                        :class ["w-full" "resize-none" "rounded" "relative" "z-10" "h-12"
+                                "pl-3.5" "pr-10" "py-2.5" "text-base" "font-normal"
+                                "dark:bg-gray-950" "border"
+                                "border-gray-200/10" "placeholder-gray-300/40"
+                                "focus:outline-none" "focus:border-cyan-700" "focus:ring-1" "focus:ring-cyan-700"]})
           ($ :button {:class ["absolute" "right-3.5" "bottom-9" "mb-1.5" "z-20" "dark:text-white" "text-gray-700"
                               (when-not (seq prompt) "opacity-20")]
                       :on-click send!}
@@ -86,10 +89,10 @@
         (if user?
           ($ User)
           ($ Ollama)))
-     ($ :div {:class ["rounded-md" "px-3" "py-2" "flex flex-col gap-2.5"
+     ($ :div {:class ["rounded-md" "px-4" "py-3" "flex flex-col gap-2.5"
                       (if user?
                         "dark:bg-white dark:text-gray-900 bg-gray-800 text-white"
-                        "dark:bg-gray-700/50 bg-gray-50 dark:text-white")]}
+                        "dark:bg-gray-800/50 bg-gray-50 dark:text-white")]}
         children)))
 
 (defnc Dialog []
@@ -131,8 +134,8 @@
                          ($ :p {:class []
                                 :key idx} text))
                        ($ :div {:class ["flex" "flex-col" "gap-2" "my-1" "animate-pulse" "min-w-[250px]"]}
-                          ($ :div {:class ["h-2" "dark:bg-white/20" "bg-gray-200/75" "rounded"]})
-                          ($ :div {:class ["h-2" "dark:bg-white/20" "bg-gray-200/75" "rounded" "w-[75%]"]}))))))))
+                          ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded"]})
+                          ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded" "w-[75%]"]}))))))))
        ($ Footer))))
 
 (defnc SidebarItem [{:keys [selected? on-click children]}]
@@ -226,8 +229,8 @@
                 ($ :p {:class ["dark:text-white/40"]}
                    (str "No dialogs found for " selected-model)))))
         ($ :button {:on-click #(set-dialog-chooser! true)
-                    :class ["bg-cyan-700/75" "hover:bg-cyan-700" "text-white" "flex" "pl-3" "py-2" "pr-4"
-                            "items-center" "rounded-sm" "justify-between"]}
+                    :class ["bg-cyan-700/75" "hover:bg-cyan-700" "text-white" "flex" "px-4" "py-2.5"
+                            "items-center" "rounded" "justify-between"]}
            "New dialog"
            ($ Plus))))))
 
@@ -252,13 +255,21 @@
 
 (defnc Dialogs []
   (let [[dialog-chooser? set-dialog-chooser!] (use-state false)
-        [show-sidebar? set-show-sidebar!] (use-state true)
+        [show-sidebar? set-show-sidebar!]
+        (use-state (local-storage-get
+                    (str ls-ollama-ui-prefs "sidebar?")))
         toggle-sidebar! #(set-show-sidebar! not)
         dialogs (use-sub [:dialogs])]
 
     (useHotkeys "ctrl+n" #(when-not dialog-chooser? (set-dialog-chooser! true)))
     (useHotkeys "ctrl+d" toggle-sidebar!)
     (useHotkeys "esc" #(when dialog-chooser? (set-dialog-chooser! false)))
+
+    (use-effect
+     [show-sidebar?]
+     (local-storage-set!
+      (str ls-ollama-ui-prefs "sidebar?")
+      show-sidebar?))
 
     ($ :div {:class ["flex" "dark:text-white" "relative" "w-full"]}
        (when (or (empty? dialogs) dialog-chooser?)
