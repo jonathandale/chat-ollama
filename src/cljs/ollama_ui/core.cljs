@@ -1,4 +1,4 @@
-(ns ollama-ui.core
+(ns ^:dev/once ollama-ui.core
   (:require [ollama-ui.lib :refer [defnc]]
             [helix.core :refer [$]]
             [refx.alpha :as refx :refer [dispatch-sync]]
