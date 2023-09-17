@@ -123,8 +123,8 @@
 (reg-event-fx
  :get-answer-success
  ollama-interceptors
- (fn [_ [_ _ _]]
-   {}))
+ (fn [{:keys [db]} [_ {:keys [dialog-uuid exchange-uuid]} response]]
+   {:db (assoc-in db [:dialogs dialog-uuid :exchanges exchange-uuid :meta] response)}))
 
 (reg-event-fx
  :get-answer-progress
