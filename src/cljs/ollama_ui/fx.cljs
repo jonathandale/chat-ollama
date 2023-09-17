@@ -1,7 +1,7 @@
 (ns ollama-ui.fx
   (:require [promesa.core :as p]
             [applied-science.js-interop :as j]
-            [cljs-bean.core :refer [->clj ->js]]
+            [cljs-bean.core :refer [->js ->clj]]
             [refx.alpha :refer [dispatch reg-fx]]))
 
 (defn request->fetch
@@ -38,10 +38,9 @@
 
 (defn- parse-chunk [chunk]
   (try
-    (j/get (js/JSON.parse chunk) :response)
-    (catch js/Error e
-      (js/console.log "chunk parse error" e chunk)
-      chunk)))
+    (js/JSON.parse chunk)
+    (catch js/Error _
+      (prn "parse error!" chunk))))
 
 (defn request->fetch-stream
   [{:as   request
@@ -54,29 +53,33 @@
                                        :body (j/call js/JSON :stringify (->js body))})]
       (if-not (j/get response :ok)
         (dispatch (conj on-failure request))
-        (p/let [reader (-> response
-                           (j/get :body)
-                           (j/call :getReader))]
+        (let [reader (-> response
+                         (j/get :body)
+                         (j/call :getReader))]
           #_{:clj-kondo/ignore [:unresolved-symbol]}
-          (p/loop [data {:buffer ""
-                         :idx 0}]
+          (p/loop [idx 0
+                   data {:response ""}]
             (p/let [read (j/call reader :read)
-                    done (j/get read :done)
-                    value (j/get read :value)]
-              (if done
-                (dispatch (conj on-success (:buffer data)))
-                (let [{:keys [buffer]} data
-                      chunk (j/call (new js/TextDecoder) :decode value)
-                      text (parse-chunk chunk)
-                      new-line? (= "\n" text)
-                      idx (if new-line?
-                            (inc (:idx data))
-                            (:idx data))]
-                  (dispatch (conj on-progress {:text text
-                                               :new-line? new-line?
-                                               :idx (:idx data)}))
-                  (p/recur {:buffer (str buffer text)
-                            :idx idx}))))))))
+                    {:keys [done value]} (j/lookup read)]
+              (if (and done (nil? value))
+                (dispatch (conj on-success data))
+                (let [chunk (-> (new js/TextDecoder)
+                                (j/call :decode value))
+                      {:keys [response] :as result}
+                      (->clj (parse-chunk chunk))
+                      has-value? (seq response)
+                      new-line? (= "\n" response)
+                      idx* (if new-line?
+                             (inc idx)
+                             idx)]
+                  (when has-value?
+                    (dispatch (conj on-progress {:text response
+                                                 :new-line? new-line?
+                                                 :idx idx*})))
+                  (p/recur idx*
+                           (if has-value?
+                             (update data :response #(str % response))
+                             (merge data result))))))))))
     (catch js/Error error
       (js/console.log "Error" error))))
 
