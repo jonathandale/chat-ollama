@@ -11,7 +11,8 @@
             ["react-hotkeys-hook" :refer [useHotkeys]]
             ["date-fns" :refer [formatDistance fromUnixTime parseISO]]
             ["lucide-react" :refer [Clipboard Check Plus X User MessagesSquare Trash2
-                                    PanelLeftClose PanelLeftOpen SendHorizontal]]))
+                                    PanelLeftClose PanelLeftOpen SendHorizontal
+                                    ArrowUpToLine ArrowDownToLine]]))
 
 (defonce max-textarea-height 500)
 (defonce min-textarea-height 48)
@@ -100,7 +101,14 @@
         exchanges (use-sub [:dialog-exchanges])
         selected-model (use-sub [:selected-model])
         selected-dialog (use-sub [:selected-dialog])
-        [model-name model-version] (str/split selected-model #":")]
+        [model-name model-version] (str/split selected-model #":")
+        ->top #(j/call @ref!
+                       :scrollTo
+                       #js{:top 0 :behavior "smooth"})
+        ->bottom #(j/call @ref!
+                          :scrollTo
+                          #js{:top (j/get @ref! :scrollHeight)
+                              :behavior "smooth"})]
 
     (use-effect
      [exchanges]
@@ -115,11 +123,24 @@
            (j/assoc! @ref!
                      :scrollTop
                      (j/get @ref! :scrollHeight))))))
+    (use-effect
+     [(count exchanges)]
+     (when (some? @ref!)
+       (j/assoc! @ref!
+                 :scrollTop
+                 (j/get @ref! :scrollHeight))))
+
+    (useHotkeys "ctrl+shift+up" ->top)
+    (useHotkeys "ctrl+shift+down" ->bottom)
 
     ($ :div {:class ["flex" "flex-col" "relative" "w-full" "h-screen"]}
-       ($ :div {:class ["absolute" "top-4" "right-4" "z-20"]}
+       ($ :div {:class ["absolute" "top-4" "right-4" "z-20" "flex" "flex-col"]}
           ($ IconButton {:on-click #(dispatch [:delete-dialog selected-dialog])
-                         :icon Trash2}))
+                         :icon Trash2})
+          ($ IconButton {:on-click ->top
+                         :icon ArrowUpToLine})
+          ($ IconButton {:on-click ->bottom
+                         :icon ArrowDownToLine}))
        ($ :div {:ref ref!
                 :class ["relative" "grow" "flex" "flex-col" "w-full" "overflow-scroll"]}
           ($ :p {:class ["text-sm" "dark:text-gray-100" "text-gray-500" "text-center" "p-6"]}
@@ -131,7 +152,7 @@
                         :key timestamp}
                   (let [prompt? (seq (str/trim prompt))]
                     ($ Message {:user? true}
-                       ($ :p {:class [(when-not prompt? "text-gray-400 italic")]}
+                       ($ :p {:class ["whitespace-pre" (when-not prompt? "text-gray-400 italic")]}
                           (if prompt? prompt "Empty"))))
                   ($ Message {:user? false}
                      (if (map? answer)
