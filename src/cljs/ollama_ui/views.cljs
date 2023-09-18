@@ -269,7 +269,8 @@
            ($ Plus))))))
 
 (defnc Offline []
-  (let [[copied copy!] (use-copy-to-clipboard)]
+  (let [[copied copy!] (use-copy-to-clipboard)
+        command (str "OLLAMA_ORIGINS=" (j/get js/location :origin) " ollama serve")]
     ($ :div {:class ["flex" "flex-col" "grow" "w-full" "justify-center" "items-center"]}
        ($ :img {:class ["w-20" "h-auto" "mb-10"]
                 :src "./assets/ollama-asleep.svg"
@@ -280,9 +281,9 @@
           "Ollama UI requires an active Ollama server to work")
        ($ :div {:class ["flex" "items-center" "rounded-md" "bg-white/5" "py-2" "pr-2" "pl-4" "text-white" "font-mono" "text-sm"]}
           ($ :span {:class ["text-white/25" "mr-3" "select-none"]} "$")
-          "ollama serve"
+          command
           ($ :button {:class ["ml-6" "p-2" "rounded-sm" "hover:bg-gray-900"]
-                      :on-click #(copy! "ollama serve")}
+                      :on-click #(copy! command)}
              (if copied
                ($ Check {:size 16})
                ($ Clipboard {:size 16})))))))
