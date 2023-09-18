@@ -101,6 +101,20 @@
               (assoc :selected-model model-name
                      :selected-dialog new-uuid))})))
 
+(reg-event-fx
+ :delete-dialog
+ ollama-interceptors
+ (fn [{:keys [db]} [_ dialog-uuid]]
+   (let [purged (update db :dialogs dissoc dialog-uuid)
+         next-selected (->> purged
+                            :dialogs
+                            vals
+                            (sort-by :timestamp)
+                            first
+                            :uuid)]
+     {:db (-> purged
+              (assoc :selected-dialog next-selected))})))
+
 ;; PROMPTS
 (reg-event-fx
  :send-prompt

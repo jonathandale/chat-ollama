@@ -10,7 +10,7 @@
             [refx.alpha :refer [use-sub dispatch]]
             ["react-hotkeys-hook" :refer [useHotkeys]]
             ["date-fns" :refer [formatDistance fromUnixTime parseISO]]
-            ["lucide-react" :refer [Clipboard Check Plus X User MessagesSquare
+            ["lucide-react" :refer [Clipboard Check Plus X User MessagesSquare Trash2
                                     PanelLeftClose PanelLeftOpen SendHorizontal]]))
 
 (defonce max-textarea-height 500)
@@ -28,11 +28,11 @@
      ($ :path {:d "M13.48 13.144c2.105 2.046.448 4.854-2.154 5.035-.502.035-1.099.037-1.789.006-1.834-.08-3.609-1.734-2.989-3.708.894-2.843 4.981-3.23 6.932-1.333Zm-.323 1.199c-.874-1.46-2.958-1.69-4.342-1.008-.75.369-1.446 1.142-1.387 2.025.148 2.264 3.936 2.163 5.141 1.372.85-.56 1.109-1.518.588-2.39ZM4.607 12.684c-.29.5-.154 1.121.301 1.386.455.265 1.059.075 1.348-.426.289-.5.154-1.12-.302-1.386-.455-.265-1.058-.074-1.347.427ZM14.596 13.65c.293.498.898.683 1.351.414.454-.27.583-.89.29-1.388-.293-.497-.898-.682-1.35-.413-.454.269-.584.89-.29 1.387Z"})
      ($ :path {:d "M9.954 15.208c-.297-.103-.445-.31-.444-.622 0-.034.012-.065.033-.09.261-.31.536-.223.812-.034a.085.085 0 0 0 .103-.004c.206-.165.525-.253.728-.033.34.37-.113.64-.37.83a.08.08 0 0 0-.032.073l.06.572a.12.12 0 0 1-.028.091c-.155.195-.359.25-.612.168-.389-.126-.196-.58-.187-.86 0-.046-.02-.077-.063-.091Z"})))
 
-(defnc IconButton [{:keys [icon on-click]}]
-  ($ :button {:class ["hover:bg-gray-800/30" "p-1.5" "rounded"
-                      "hover:text-gray-100" "text-gray-300/80"]
+(defnc IconButton [{:keys [icon on-click class] :or {class []}}]
+  ($ :button {:class (into class conj ["hover:bg-gray-800/30" "p-2.5" "rounded"
+                                       "hover:text-gray-100" "text-gray-300/80"])
               :on-click on-click}
-     icon))
+     ($ icon {:size 20})))
 
 (defnc Footer []
   (let [selected-dialog (use-sub [:selected-dialog])
@@ -61,7 +61,7 @@
                                    (j/get @ref! :scrollHeight))) "px"))))
 
     ($ :div {:class ["absolute" "bottom-0" "inset-x-0"]}
-       ($ :div {:class ["dark:bg-gray-900" "bg-white" "z-10" "max-w-5xl" "mx-auto" "absolute" "bottom-0" "pb-6" "inset-x-6"]}
+       ($ :div {:class ["dark:bg-gray-900" "bg-white" "z-10" "max-w-5xl" "mx-auto" "absolute" "bottom-0" "pb-6" "inset-x-16"]}
           ($ :div {:class ["z-0" "absolute" "top-0" "-translate-y-full" "inset-x-0" "h-16"
                            "bg-gradient-to-t" "dark:from-gray-900" "from-white" "to-transparent" "pointer-events-none"]})
           ($ :textarea {:ref ref!
@@ -73,7 +73,7 @@
                                 "pl-3.5" "pr-10" "py-2.5" "text-base" "font-normal"
                                 "dark:bg-gray-950" "border"
                                 "border-gray-200/10" "placeholder-gray-300/40"
-                                "focus:outline-none" "focus:border-cyan-700" "focus:ring-1" "focus:ring-cyan-700"]})
+                                "focus:outline-none" "focus:border-cyan-600" "focus:ring-1" "focus:ring-cyan-600"]})
           ($ :button {:class ["absolute" "right-3.5" "bottom-9" "mb-1.5" "z-20" "dark:text-white" "text-gray-700"
                               (when-not (seq prompt) "opacity-20")]
                       :on-click send!}
@@ -99,7 +99,9 @@
   (let [ref! (use-ref nil)
         exchanges (use-sub [:dialog-exchanges])
         selected-model (use-sub [:selected-model])
+        selected-dialog (use-sub [:selected-dialog])
         [model-name model-version] (str/split selected-model #":")]
+
     (use-effect
      [exchanges]
      (when (some? @ref!)
@@ -115,14 +117,17 @@
                      (j/get @ref! :scrollHeight))))))
 
     ($ :div {:class ["flex" "flex-col" "relative" "w-full" "h-screen"]}
+       ($ :div {:class ["absolute" "top-4" "right-4" "z-20"]}
+          ($ IconButton {:on-click #(dispatch [:delete-dialog selected-dialog])
+                         :icon Trash2}))
        ($ :div {:ref ref!
                 :class ["relative" "grow" "flex" "flex-col" "w-full" "overflow-scroll"]}
           ($ :p {:class ["text-sm" "dark:text-gray-100" "text-gray-500" "text-center" "p-6"]}
              model-name
              ($ :span {:class ["opacity-50"]} ":" model-version))
-          ($ :div {:class ["flex" "flex-col" "w-full" "grow" "max-w-5xl" "mx-auto" "justify-end" "px-6" "pt-6" "pb-32"]}
+          ($ :div {:class ["flex" "flex-col" "w-full" "grow" "max-w-5xl" "mx-auto" "justify-end" "pt-6" "pb-32" "px-[4.5rem]"]}
              (for [{:keys [prompt answer timestamp]} exchanges]
-               ($ :div {:class ["flex" "flex-col" "gap-3" "mt-3"]
+               ($ :div {:class ["flex" "flex-col" "gap-6" "mt-6"]
                         :key timestamp}
                   (let [prompt? (seq (str/trim prompt))]
                     ($ Message {:user? true}
@@ -140,7 +145,7 @@
 
 (defnc SidebarItem [{:keys [selected? on-click children]}]
   (let [class #{"border-transparent"}
-        selected-class #{"dark:text-white" "cursor-default" "bg-gray-100/60" "dark:bg-gray-800/50" "border-cyan-600"}]
+        selected-class #{"dark:text-white" "cursor-default" "bg-gray-100/60" "dark:bg-gray-800/50" "border-cyan-500"}]
     ($ :button {:class (vec (union #{"px-3" "py-1.5" "text-sm" "w-full" "text-left" "rounded"
                                      "dark:hover:bg-gray-800/60" "hover:bg-gray-100/50" "border-l-4"}
                                    (if selected? selected-class class)))
@@ -153,21 +158,20 @@
                      "justify-center" "items-center"
                      "py-20" "h-full"]}
        (when (fn? on-close)
-         ($ :div {:class ["absolute" "top-6" "right-6"]}
+         ($ :div {:class ["absolute" "top-4" "right-4"]}
             ($ IconButton {:on-click on-close
-                           :icon ($ X)})))
+                           :icon X})))
        ($ :h1 {:class ["text-white" "text-3xl"]}
           "Start a new Dialog")
        ($ :h2 {:class ["text-lg" "text-white/40" "mb-10"]}
           "Choose which model you want to send messages to")
-       ($ :ul {:class ["text-white" "bg-gray-900/40" "w-full" "max-w-2xl" "overflow-scroll"
+       ($ :ul {:class ["text-white" "bg-gray-950/30" "w-full" "max-w-2xl" "overflow-scroll"
                        "rounded" "border" "border-gray-700/40" "divide-y" "divide-gray-700/50"]}
           (for [model models]
             (let [[model-name model-version] (str/split (:name model) #":")]
-              ($ :li {:class []
-                      :key (:digest model)}
-                 ($ :button {:class ["text-left" "w-full" "hover:bg-cyan-500/50" "pl-3" "pr-5" "py-2"
-                                     "flex" "items-center" "justify-between"]
+              ($ :li {:key (:digest model)}
+                 ($ :button {:class ["text-left" "w-full" "hover:bg-cyan-700" "pl-3" "pr-5" "py-2"
+                                     "flex" "items-center" "justify-between" "group"]
                              :on-click #(do
                                           (dispatch [:new-dialog (:name model)])
                                           (when (fn? on-close)
@@ -186,7 +190,8 @@
                              (b->gb (:size model)) "GB")
                           ($ :span {:class ["opacity-20"]}
                              (subs (:digest model) 0 7))))
-                    ($ Plus)))))))))
+                    ($ :div {:class ["p-1.5" "rounded" "bg-cyan-700" "group-hover:bg-white" "group-hover:text-cyan-700"]}
+                       ($ Plus))))))))))
 
 (defnc Sidebar [{:keys [set-dialog-chooser! toggle-sidebar!]}]
   (let [selected-model (use-sub [:selected-model])
@@ -203,8 +208,9 @@
                  "Dialogs"
                  ($ :span {:class ["opacity-50" "ml-2"]}
                     (count dialogs))))
-           ($ IconButton {:on-click toggle-sidebar!
-                          :icon ($ PanelLeftClose)}))
+           ($ IconButton {:class ["-m-2"]
+                          :on-click toggle-sidebar!
+                          :icon PanelLeftClose}))
         ($ :div {:class ["grow" "overflow-scroll"]}
            ($ :ul {:class ["flex" "flex-col" "gap-y-2"]}
               (if (seq dialogs)
@@ -229,7 +235,7 @@
                 ($ :p {:class ["dark:text-white/40"]}
                    (str "No dialogs found for " selected-model)))))
         ($ :button {:on-click #(set-dialog-chooser! true)
-                    :class ["bg-cyan-700/75" "hover:bg-cyan-700" "text-white" "flex" "px-4" "py-2.5"
+                    :class ["bg-cyan-600" "hover:bg-cyan-700" "text-white" "flex" "px-4" "py-2.5"
                             "items-center" "rounded" "justify-between"]}
            "New dialog"
            ($ Plus))))))
@@ -278,9 +284,9 @@
        (if show-sidebar?
          ($ Sidebar {:set-dialog-chooser! set-dialog-chooser!
                      :toggle-sidebar! toggle-sidebar!})
-         ($ :div {:class ["absolute" "top-6" "left-6" "z-10"]}
+         ($ :div {:class ["absolute" "top-4" "left-4" "z-10"]}
             ($ IconButton {:on-click toggle-sidebar!
-                           :icon ($ PanelLeftOpen)})))
+                           :icon PanelLeftOpen})))
        ($ Dialog))))
 
 (defnc Main []
