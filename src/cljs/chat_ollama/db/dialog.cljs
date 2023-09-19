@@ -1,4 +1,4 @@
-(ns ollama-ui.db.dialog
+(ns chat-ollama.db.dialog
   (:require [cljs.spec.alpha :as s]))
 
 (s/def ::prompt string?)

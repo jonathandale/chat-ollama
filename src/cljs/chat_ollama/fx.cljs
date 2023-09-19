@@ -1,4 +1,4 @@
-(ns ollama-ui.fx
+(ns chat-ollama.fx
   (:require [promesa.core :as p]
             [applied-science.js-interop :as j]
             [cljs-bean.core :refer [->js ->clj]]

@@ -1,10 +1,10 @@
-(ns ollama-ui.views
+(ns chat-ollama.views
   (:require [applied-science.js-interop :as j]
             [clojure.string :as str]
             [clojure.set :refer [union]]
-            [ollama-ui.lib :refer [defnc]]
-            [ollama-ui.utils :refer [debounce local-storage-set! local-storage-get]]
-            [ollama-ui.hooks :refer [use-copy-to-clipboard]]
+            [chat-ollama.lib :refer [defnc]]
+            [chat-ollama.utils :refer [debounce local-storage-set! local-storage-get]]
+            [chat-ollama.hooks :refer [use-copy-to-clipboard]]
             [helix.core :refer [$ <>]]
             [helix.hooks :refer [use-effect use-state use-ref]]
             [refx.alpha :refer [use-sub dispatch]]
@@ -20,7 +20,7 @@
 (defonce max-textarea-height 500)
 (defonce min-textarea-height 48)
 (defonce line-height 48)
-(defonce ls-ollama-ui-prefs "ollama-ui:prefs:")
+(defonce ls-chat-ollama-prefs "chat-ollama:prefs:")
 
 (defn- b->gb [bytes]
   (j/call (/ bytes 1024 1024 1024) :toFixed 2))
@@ -330,7 +330,7 @@
   (let [[dialog-chooser? set-dialog-chooser!] (use-state false)
         [show-sidebar? set-show-sidebar!]
         (use-state (local-storage-get
-                    (str ls-ollama-ui-prefs "sidebar?")))
+                    (str ls-chat-ollama-prefs "sidebar?")))
         toggle-sidebar! #(set-show-sidebar! not)
         dialogs (use-sub [:dialogs])]
 
@@ -341,8 +341,10 @@
     (use-effect
      [show-sidebar?]
      (local-storage-set!
-      (str ls-ollama-ui-prefs "sidebar?")
-      show-sidebar?))
+      (str ls-chat-ollama-prefs "sidebar?")
+      (if (boolean? show-sidebar?)
+        show-sidebar?
+        true)))
 
     ($ :div {:class ["flex" "dark:text-white" "relative" "w-full"]}
        (when (or (empty? dialogs) dialog-chooser?)

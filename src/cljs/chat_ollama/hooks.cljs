@@ -1,4 +1,4 @@
-(ns ollama-ui.hooks
+(ns chat-ollama.hooks
   (:require [applied-science.js-interop :as j]
             [helix.hooks :refer [use-effect use-state]]))
 

@@ -1,4 +1,4 @@
-(ns ollama-ui.utils
+(ns chat-ollama.utils
   (:require [cognitect.transit :as t]
             [applied-science.js-interop :as j]))
 

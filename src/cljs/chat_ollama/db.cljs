@@ -1,11 +1,11 @@
-(ns ollama-ui.db
+(ns chat-ollama.db
   (:require [cljs.spec.alpha :as s]
-            [ollama-ui.db.model :as model]
-            [ollama-ui.db.dialog :as dialog]))
+            [chat-ollama.db.model :as model]
+            [chat-ollama.db.dialog :as dialog]))
 
 (s/def ::ollama-offline? boolean?)
 
-(s/def ::db (s/keys :req-un [:ollama-ui.db/ollama-offline?
+(s/def ::db (s/keys :req-un [:chat-ollama.db/ollama-offline?
                              ::model/models
                              ::model/selected-model
                              ::dialog/dialogs

@@ -1,4 +1,4 @@
-(ns ollama-ui.subs
+(ns chat-ollama.subs
   (:require [refx.alpha :refer [reg-sub sub]]))
 
 ;; Misc
