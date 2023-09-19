@@ -146,12 +146,9 @@
  (fn [{:keys [db]}
       [_
        {:keys [dialog-uuid exchange-uuid]}
-       {:keys [text idx new-line?]}]]
-   {:db (if new-line?
-          db
-          (update-in db [:dialogs dialog-uuid :exchanges exchange-uuid :answer idx]
-                     (fn [current]
-                       (str current text))))}))
+       {:keys [text _idx _new-line?]}]]
+   {:db (update-in db [:dialogs dialog-uuid :exchanges exchange-uuid :answer]
+                   #(str % text))}))
 
 (reg-event-db
  :get-answer-failure

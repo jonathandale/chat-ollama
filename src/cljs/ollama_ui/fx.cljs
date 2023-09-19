@@ -57,8 +57,7 @@
                          (j/get :body)
                          (j/call :getReader))]
           #_{:clj-kondo/ignore [:unresolved-symbol]}
-          (p/loop [idx 0
-                   data {:response ""}]
+          (p/loop [data {:response ""}]
             (p/let [read (j/call reader :read)
                     {:keys [done value]} (j/lookup read)]
               (if (and done (nil? value))
@@ -67,17 +66,10 @@
                                 (j/call :decode value))
                       {:keys [response] :as result}
                       (->clj (parse-chunk chunk))
-                      has-value? (seq response)
-                      new-line? (= "\n" response)
-                      idx* (if new-line?
-                             (inc idx)
-                             idx)]
+                      has-value? (seq response)]
                   (when has-value?
-                    (dispatch (conj on-progress {:text response
-                                                 :new-line? new-line?
-                                                 :idx idx*})))
-                  (p/recur idx*
-                           (if has-value?
+                    (dispatch (conj on-progress {:text response})))
+                  (p/recur (if has-value?
                              (update data :response #(str % response))
                              (merge data result))))))))))
     (catch js/Error error

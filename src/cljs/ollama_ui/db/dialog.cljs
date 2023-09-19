@@ -5,7 +5,7 @@
 (s/def ::timestamp number?)
 (s/def ::uuid string?)
 (s/def ::model-name string?)
-(s/def ::answer (s/nilable (s/map-of int? string?)))
+(s/def ::answer (s/nilable string?))
 
 
 (s/def ::context coll?)
@@ -23,9 +23,9 @@
                                ::eval_duration
                                ::load_duration
                                ::prompt_eval_count
-                               ::prompt_eval_duration
                                ::total_duration
-                               ::response]))
+                               ::response]
+                      :opt-un [::prompt_eval_duration]))
 
 (s/def ::exchange (s/keys :req-un [::timestamp ::prompt]
                           :opt-un [::answer ::meta]))
