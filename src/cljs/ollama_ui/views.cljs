@@ -29,10 +29,14 @@
      ($ :path {:d "M13.48 13.144c2.105 2.046.448 4.854-2.154 5.035-.502.035-1.099.037-1.789.006-1.834-.08-3.609-1.734-2.989-3.708.894-2.843 4.981-3.23 6.932-1.333Zm-.323 1.199c-.874-1.46-2.958-1.69-4.342-1.008-.75.369-1.446 1.142-1.387 2.025.148 2.264 3.936 2.163 5.141 1.372.85-.56 1.109-1.518.588-2.39ZM4.607 12.684c-.29.5-.154 1.121.301 1.386.455.265 1.059.075 1.348-.426.289-.5.154-1.12-.302-1.386-.455-.265-1.058-.074-1.347.427ZM14.596 13.65c.293.498.898.683 1.351.414.454-.27.583-.89.29-1.388-.293-.497-.898-.682-1.35-.413-.454.269-.584.89-.29 1.387Z"})
      ($ :path {:d "M9.954 15.208c-.297-.103-.445-.31-.444-.622 0-.034.012-.065.033-.09.261-.31.536-.223.812-.034a.085.085 0 0 0 .103-.004c.206-.165.525-.253.728-.033.34.37-.113.64-.37.83a.08.08 0 0 0-.032.073l.06.572a.12.12 0 0 1-.028.091c-.155.195-.359.25-.612.168-.389-.126-.196-.58-.187-.86 0-.046-.02-.077-.063-.091Z"})))
 
-(defnc IconButton [{:keys [icon on-click class] :or {class []}}]
-  ($ :button {:class (into class conj ["hover:bg-gray-800/40" "p-2.5" "rounded"
-                                       "hover:text-gray-100" "text-gray-300/80"])
-              :on-click on-click}
+(defnc IconButton
+  [{:keys [icon on-click disabled? class]
+    :or {class []}}]
+  ($ :button {:class (into class conj ["enabled:hover:bg-gray-800/40" "p-2.5" "rounded"
+                                       "enabled:hover:text-gray-100" "text-gray-300/80"
+                                       "disabled:opacity-50"])
+              :on-click on-click
+              :disabled disabled?}
      ($ icon {:size 20})))
 
 (defnc Footer []
@@ -82,7 +86,7 @@
 
 (defnc Message [{:keys [user? children copy->clipboard]}]
   (let [[copied copy!] (use-copy-to-clipboard)]
-    ($ :div {:class ["lg:max-w-[75%]" "flex" "gap-3"
+    ($ :div {:class ["lg:max-w-[85%]" "flex" "gap-3"
                      (if user? "place-self-end flex-row-reverse" "place-self-start")]}
        ($ :div {:class ["shrink-0" "flex" "flex-col"]}
           ($ :div {:class ["rounded" "w-10" "h-10" "flex" "justify-center"
@@ -108,24 +112,36 @@
         selected-model (use-sub [:selected-model])
         selected-dialog (use-sub [:selected-dialog])
         [model-name model-version] (str/split selected-model #":")
+        [->top-disabled? set->top-disabled] (use-state true)
+        [->bottom-disabled? set->bottom-disabled] (use-state true)
         ->top #(j/call @ref!
                        :scrollTo
                        #js{:top 0 :behavior "smooth"})
         ->bottom #(j/call @ref!
                           :scrollTo
                           #js{:top (j/get @ref! :scrollHeight)
-                              :behavior "smooth"})]
+                              :behavior "smooth"})
+        get-scroll-info #(let [height (-> @ref!
+                                          (j/call :getBoundingClientRect)
+                                          (j/get :height))
+                               scroll-height (j/get @ref! :scrollHeight)
+                               scroll-top (j/get @ref! :scrollTop)]
+                           {:scroll-top scroll-top
+                            :scroll-bottom (- scroll-height (+ height scroll-top))})
+        slow-on-scroll
+        (debounce (fn []
+                    (let [{:keys [scroll-bottom scroll-top]}
+                          (get-scroll-info)]
+                      (set->top-disabled (not (pos? scroll-top)))
+                      (set->bottom-disabled (not (pos? scroll-bottom)))))
+                  500)]
 
     (use-effect
      [exchanges]
      (when (some? @ref!)
-       (let [height (-> @ref!
-                        (j/call :getBoundingClientRect)
-                        (j/get :height))
-             scroll-height (j/get @ref! :scrollHeight)
-             scroll-top (j/get @ref! :scrollTop)
-             scroll-amount (- (- scroll-height height) scroll-top)]
-         (when (<= scroll-amount line-height)
+       (let [{:keys [scroll-bottom]}
+             (get-scroll-info)]
+         (when (<= scroll-bottom line-height)
            (j/assoc! @ref!
                      :scrollTop
                      (j/get @ref! :scrollHeight))))))
@@ -144,11 +160,14 @@
           ($ IconButton {:on-click #(dispatch [:delete-dialog selected-dialog])
                          :icon Trash2})
           ($ IconButton {:on-click ->top
+                         :disabled? ->top-disabled?
                          :icon ArrowUpToLine})
           ($ IconButton {:on-click ->bottom
+                         :disabled? ->bottom-disabled?
                          :icon ArrowDownToLine}))
        ($ :div {:ref ref!
-                :class ["relative" "grow" "flex" "flex-col" "w-full" "overflow-scroll"]}
+                :class ["relative" "grow" "flex" "flex-col" "w-full" "overflow-scroll"]
+                :on-scroll slow-on-scroll}
           ($ :p {:class ["text-sm" "dark:text-gray-100" "text-gray-500" "text-center" "p-6"]}
              model-name
              ($ :span {:class ["opacity-50"]} ":" model-version))
