@@ -1,4 +1,4 @@
-(ns ollama-ui.db.model
+(ns chat-ollama.db.model
   (:require [cljs.spec.alpha :as s]))
 
 (s/def ::digest string?)

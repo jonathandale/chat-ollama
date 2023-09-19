@@ -12,4 +12,4 @@
  :builds {:app {:target :browser
                 :output-dir "public/js"
                 :asset-path "/js"
-                :modules {:main {:init-fn ollama-ui.core/main}}}}}
+                :modules {:main {:init-fn chat-ollama.core/main}}}}}

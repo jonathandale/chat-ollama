@@ -1,1 +1,1 @@
-{:lint-as {ollama-ui.lib/defnc clojure.core/defn}}
+{:lint-as {chat-ollama.lib/defnc clojure.core/defn}}

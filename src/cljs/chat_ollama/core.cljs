@@ -1,11 +1,11 @@
-(ns ^:dev/once ollama-ui.core
-  (:require [ollama-ui.lib :refer [defnc]]
+(ns ^:dev/once chat-ollama.core
+  (:require [chat-ollama.lib :refer [defnc]]
             [helix.core :refer [$]]
             [refx.alpha :as refx :refer [dispatch-sync]]
-            [ollama-ui.fx]
-            [ollama-ui.events]
-            [ollama-ui.subs]
-            [ollama-ui.views :as views]
+            [chat-ollama.fx]
+            [chat-ollama.events]
+            [chat-ollama.subs]
+            [chat-ollama.views :as views]
             ["react-dom/client" :as rdc]))
 
 (enable-console-print!)

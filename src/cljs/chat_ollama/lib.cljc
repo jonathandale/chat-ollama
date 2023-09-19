@@ -1,6 +1,6 @@
-(ns ollama-ui.lib
+(ns chat-ollama.lib
   #?(:clj  (:require [helix.core])
-     :cljs (:require-macros [ollama-ui.lib])))
+     :cljs (:require-macros [chat-ollama.lib])))
 
 #?(:clj
    (defmacro defnc [type & form-body]

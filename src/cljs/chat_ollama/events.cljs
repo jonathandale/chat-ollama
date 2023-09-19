@@ -1,6 +1,6 @@
-(ns ollama-ui.events
+(ns chat-ollama.events
   (:require [cljs.spec.alpha :as s]
-            [ollama-ui.db :refer [default-db]]
+            [chat-ollama.db :refer [default-db]]
             [refx.alpha :refer [->interceptor reg-event-db reg-event-fx]]
             [refx.interceptors :refer [after]]
             ["date-fns" :refer (getUnixTime)]))
@@ -16,7 +16,7 @@
   (when-not (s/valid? a-spec db)
     (throw (ex-info (str "spec check failed: " (s/explain-str a-spec db)) {}))))
 
-(def check-spec-interceptor (after (partial check-and-throw :ollama-ui.db/db)))
+(def check-spec-interceptor (after (partial check-and-throw :chat-ollama.db/db)))
 
 (def offline-interceptor
   (->interceptor
