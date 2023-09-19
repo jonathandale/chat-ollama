@@ -8,6 +8,9 @@
             [helix.core :refer [$ <>]]
             [helix.hooks :refer [use-effect use-state use-ref]]
             [refx.alpha :refer [use-sub dispatch]]
+            ["react-markdown$default" :as ReactMarkdown]
+            ["react-syntax-highlighter/dist/esm/styles/prism" :refer [nord]]
+            ["react-syntax-highlighter" :refer [Prism]]
             ["react-hotkeys-hook" :refer [useHotkeys]]
             ["date-fns" :refer [formatDistance fromUnixTime parseISO]]
             ["lucide-react" :refer [Clipboard Check Plus X User MessagesSquare Trash2
@@ -16,7 +19,7 @@
 
 (defonce max-textarea-height 500)
 (defonce min-textarea-height 48)
-(defonce line-height 34)
+(defonce line-height 48)
 (defonce ls-ollama-ui-prefs "ollama-ui:prefs:")
 
 (defn- b->gb [bytes]
@@ -65,11 +68,17 @@
                               (max min-textarea-height
                                    (j/get @ref! :scrollHeight))) "px"))))
 
+    (use-effect
+     [@ref!]
+     (when @ref!
+       (j/call @ref! :focus)))
+
     ($ :div {:class ["absolute" "bottom-0" "inset-x-0"]}
        ($ :div {:class ["dark:bg-gray-900" "bg-white" "z-10" "max-w-5xl" "mx-auto" "absolute" "bottom-0" "pb-6" "inset-x-16"]}
           ($ :div {:class ["z-0" "absolute" "top-0" "-translate-y-full" "inset-x-0" "h-16"
                            "bg-gradient-to-t" "dark:from-gray-900" "from-white" "to-transparent" "pointer-events-none"]})
           ($ :textarea {:ref ref!
+                        :key selected-dialog
                         :placeholder (str "Send message to " selected-model)
                         :onChange #(slowly-set-prompt! (j/get-in % [:target :value]))
                         :onKeyPress on-key-press
@@ -100,7 +109,7 @@
           (when copy->clipboard
             ($ IconButton {:icon (if copied Check Clipboard)
                            :on-click #(copy! copy->clipboard)})))
-       ($ :div {:class ["h-fit" "rounded-md" "px-4" "py-3" "flex flex-col gap-2.5"
+       ($ :div {:class ["h-fit" "rounded-md" "px-4" "py-3" "flex" "flex-col" "gap-2.5" "overflow-scroll"
                         (if user?
                           "dark:bg-white dark:text-gray-900 bg-gray-800 text-white"
                           "dark:bg-gray-800/50 bg-gray-50 dark:text-white")]}
@@ -139,8 +148,7 @@
     (use-effect
      [exchanges]
      (when (some? @ref!)
-       (let [{:keys [scroll-bottom]}
-             (get-scroll-info)]
+       (let [{:keys [scroll-bottom]} (get-scroll-info)]
          (when (<= scroll-bottom line-height)
            (j/assoc! @ref!
                      :scrollTop
@@ -177,14 +185,25 @@
                         :key timestamp}
                   (let [prompt? (seq (str/trim prompt))]
                     ($ Message {:user? true}
-                       ($ :p {:class ["whitespace-pre" (when-not prompt? "text-gray-400 italic")]}
+                       ($ :p {:class ["whitespace-pre-line" (when-not prompt? "text-gray-400 italic")]}
                           (if prompt? prompt "Empty"))))
                   ($ Message {:user? false
                               :copy->clipboard (:response meta)}
-                     (if (map? answer)
-                       (for [[idx text] answer]
-                         ($ :p {:class []
-                                :key idx} text))
+                     (if answer
+                       ($ ReactMarkdown
+                          {:children answer
+                           :className "markdown-body"
+                           :components
+                           #js{:code
+                               (fn [props]
+                                 (let [{:keys [inline className children]} (j/lookup props)
+                                       language (second (str/split className #"-"))]
+                                   (if (and (not inline)
+                                            (seq language))
+                                     ($ Prism {:children (or (first children) "")
+                                               :language language
+                                               :style nord})
+                                     ($ :code {} children))))}})
                        ($ :div {:class ["flex" "flex-col" "gap-2" "my-1" "animate-pulse" "min-w-[250px]"]}
                           ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded"]})
                           ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded" "w-[75%]"]}))))))))
