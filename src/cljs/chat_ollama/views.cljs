@@ -328,9 +328,11 @@
 
 (defnc Dialogs []
   (let [[dialog-chooser? set-dialog-chooser!] (use-state false)
+        ls-sidebar? (local-storage-get (str ls-chat-ollama-prefs "sidebar?"))
         [show-sidebar? set-show-sidebar!]
-        (use-state (local-storage-get
-                    (str ls-chat-ollama-prefs "sidebar?")))
+        (use-state (if (some? ls-sidebar?)
+                     ls-sidebar?
+                     true))
         toggle-sidebar! #(set-show-sidebar! not)
         dialogs (use-sub [:dialogs])]
 
@@ -342,9 +344,7 @@
      [show-sidebar?]
      (local-storage-set!
       (str ls-chat-ollama-prefs "sidebar?")
-      (if (boolean? show-sidebar?)
-        show-sidebar?
-        true)))
+      show-sidebar?))
 
     ($ :div {:class ["flex" "dark:text-white" "relative" "w-full"]}
        (when (or (empty? dialogs) dialog-chooser?)
