@@ -1,2 +1,2 @@
-# ollama-ui
-UI for Ollama
+# chat-ollama
+Chat UI for [Ollama](https://ollama.ai)
