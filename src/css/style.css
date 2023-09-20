@@ -509,7 +509,7 @@
 .markdown-body ol,
 .markdown-body dl,
 .markdown-body table,
-.markdown-body pre,
+.markdown-body>pre,
 .markdown-body details {
   margin-top: 0;
   margin-bottom: 16px;
@@ -828,6 +828,7 @@
 .markdown-body .highlight pre,
 .markdown-body pre {
   font-size: 0.875rem;
+  position: relative;
 }
 
 .markdown-body pre code,
