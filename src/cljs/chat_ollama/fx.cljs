@@ -25,9 +25,7 @@
                        (-> (j/call response :json)
                            (.then success->))))
                    (dispatch (conj on-failure request)))))
-        (.catch #(do
-                   (js/console.log "%" %)
-                   (dispatch (conj on-failure (assoc request :status 0))))))))
+        (.catch #(dispatch (conj on-failure (assoc request :status 0)))))))
 
 (defn fetch-effect [request]
   (let [seq-request-maps (if (sequential? request) request [request])]
