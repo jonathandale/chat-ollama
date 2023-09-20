@@ -75,7 +75,7 @@
 
     ($ :div {:class ["absolute" "bottom-0" "inset-x-0"]}
        ($ :div {:class ["dark:bg-gray-900" "bg-white" "z-10" "max-w-5xl" "mx-auto" "absolute" "bottom-0" "pb-6" "inset-x-16"]}
-          ($ :div {:class ["z-0" "absolute" "top-0" "-translate-y-full" "inset-x-0" "h-16"
+          ($ :div {:class ["z-0" "absolute" "top-0" "-translate-y-full" "inset-x-0" "h-9"
                            "bg-gradient-to-t" "dark:from-gray-900" "from-white" "to-transparent" "pointer-events-none"]})
           ($ :textarea {:ref ref!
                         :key selected-dialog
@@ -111,9 +111,25 @@
                            :on-click #(copy! copy->clipboard)})))
        ($ :div {:class ["h-fit" "rounded-md" "px-4" "py-3" "flex" "flex-col" "gap-2.5" "overflow-scroll"
                         (if user?
-                          "dark:bg-white dark:text-gray-900 bg-gray-800 text-white"
+                          "border border-gray-100/20"
                           "dark:bg-gray-800/50 bg-gray-50 dark:text-white")]}
           children))))
+
+(defnc Markdown [{:keys [children]}]
+  ($ ReactMarkdown
+     {:children children
+      :className "markdown-body"
+      :components
+      #js{:code
+          (fn [props]
+            (let [{:keys [inline className children]} (j/lookup props)
+                  language (second (str/split className #"-"))]
+              (if (and (not inline)
+                       (seq language))
+                ($ Prism {:children (or (first children) "")
+                          :language language
+                          :style nord})
+                ($ :code {} children))))}}))
 
 (defnc Dialog []
   (let [ref! (use-ref nil)
@@ -164,7 +180,9 @@
     (useHotkeys "ctrl+shift+down" ->bottom)
 
     ($ :div {:class ["flex" "flex-col" "relative" "w-full" "h-screen"]}
-       ($ :div {:class ["absolute" "top-4" "right-4" "z-20" "flex" "flex-col"]}
+       ($ :div {:class ["z-20" "absolute" "top-0" "inset-x-0" "h-9"
+                        "bg-gradient-to-t" "dark:to-gray-900" "to-white" "from-transparent" "pointer-events-none"]})
+       ($ :div {:class ["absolute" "top-4" "right-4" "z-30" "flex" "flex-col"]}
           ($ IconButton {:on-click #(dispatch [:delete-dialog selected-dialog])
                          :icon Trash2})
           ($ IconButton {:on-click ->top
@@ -179,31 +197,20 @@
           ($ :p {:class ["text-sm" "dark:text-gray-100" "text-gray-500" "text-center" "p-6"]}
              model-name
              ($ :span {:class ["opacity-50"]} ":" model-version))
-          ($ :div {:class ["flex" "flex-col" "w-full" "grow" "max-w-5xl" "mx-auto" "justify-end" "pt-6" "pb-32" "px-[4.5rem]"]}
+          ($ :div {:class ["flex" "flex-col" "w-full" "grow" "max-w-6xl" "mx-auto" "justify-end" "pt-6" "pb-36" "px-20"]}
              (for [{:keys [prompt answer timestamp meta]} exchanges]
                ($ :div {:class ["flex" "flex-col" "gap-6" "mt-6"]
                         :key timestamp}
                   (let [prompt? (seq (str/trim prompt))]
                     ($ Message {:user? true}
-                       ($ :p {:class ["whitespace-pre-line" (when-not prompt? "text-gray-400 italic")]}
-                          (if prompt? prompt "Empty"))))
+                       ($ :div {:class [(when-not prompt? "text-gray-400 italic")]}
+                          (if prompt?
+                            ($ Markdown {} prompt)
+                            "Empty"))))
                   ($ Message {:user? false
                               :copy->clipboard (:response meta)}
                      (if answer
-                       ($ ReactMarkdown
-                          {:children answer
-                           :className "markdown-body"
-                           :components
-                           #js{:code
-                               (fn [props]
-                                 (let [{:keys [inline className children]} (j/lookup props)
-                                       language (second (str/split className #"-"))]
-                                   (if (and (not inline)
-                                            (seq language))
-                                     ($ Prism {:children (or (first children) "")
-                                               :language language
-                                               :style nord})
-                                     ($ :code {} children))))}})
+                       ($ Markdown {} answer)
                        ($ :div {:class ["flex" "flex-col" "gap-2" "my-1" "animate-pulse" "min-w-[250px]"]}
                           ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded"]})
                           ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded" "w-[75%]"]}))))))))
@@ -353,7 +360,7 @@
        (if show-sidebar?
          ($ Sidebar {:set-dialog-chooser! set-dialog-chooser!
                      :toggle-sidebar! toggle-sidebar!})
-         ($ :div {:class ["absolute" "top-4" "left-4" "z-10"]}
+         ($ :div {:class ["absolute" "top-4" "left-4" "z-30"]}
             ($ IconButton {:on-click toggle-sidebar!
                            :icon PanelLeftOpen})))
        ($ Dialog))))
