@@ -333,7 +333,9 @@
 
 (defnc Offline []
   (let [[copied copy!] (use-copy-to-clipboard)
-        command (str "OLLAMA_ORIGINS=" (j/get js/location :origin) " ollama serve")]
+        command (if (= "localhost" (j/get js/location :hostname))
+                  "ollama serve"
+                  (str "OLLAMA_ORIGINS=" (j/get js/location :origin) " ollama serve"))]
     ($ :div {:class ["flex" "flex-col" "grow" "w-full" "justify-center" "items-center"]}
        ($ OllamaAsleep)
        ($ :h1 {:class ["dark:text-white" "text-3xl" "mt-6"]}
