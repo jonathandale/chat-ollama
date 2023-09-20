@@ -9,14 +9,14 @@
             [helix.hooks :refer [use-effect use-state use-ref]]
             [refx.alpha :refer [use-sub dispatch]]
             ["react-markdown$default" :as ReactMarkdown]
-            ["react-syntax-highlighter/dist/esm/styles/prism" :refer [nord]]
-            ["react-syntax-highlighter" :refer [Prism]]
+            ["react-syntax-highlighter/dist/esm/styles/hljs" :as p :refer [nord githubGist]]
+            ["react-syntax-highlighter" :refer [Light]]
             ["react-hotkeys-hook" :refer [useHotkeys]]
             ["date-fns" :refer [formatDistance fromUnixTime parseISO]]
             ["lucide-react" :refer [Clipboard Check Plus X User MessagesSquare Trash2
                                     PanelLeftClose PanelLeftOpen SendHorizontal
                                     ArrowUpToLine ArrowDownToLine]]))
-
+(defonce dark-mode? (j/get (js/matchMedia "(prefers-color-scheme: dark)") :matches))
 (defonce max-textarea-height 500)
 (defonce min-textarea-height 48)
 (defonce line-height 48)
@@ -43,9 +43,13 @@
 (defnc IconButton
   [{:keys [icon on-click disabled? class]
     :or {class []}}]
-  ($ :button {:class (into class conj ["enabled:hover:bg-gray-800/40" "p-2.5" "rounded"
-                                       "enabled:hover:text-gray-100" "text-gray-300/80"
-                                       "disabled:opacity-50"])
+  ($ :button {:class (into class conj ["disabled:opacity-50" "p-2.5" "rounded"
+                                       "dark:enabled:hover:bg-gray-800/40"
+                                       "dark:enabled:hover:text-gray-100"
+                                       "dark:text-gray-300/80"
+                                       "enabled:hover:bg-gray-200/30"
+                                       "enabled:hover:text-gray-700"
+                                       "text-gray-600/80"])
               :on-click on-click
               :disabled disabled?}
      ($ icon {:size 20})))
@@ -93,8 +97,8 @@
                         :rows 1
                         :class ["w-full" "resize-none" "rounded" "relative" "z-10" "h-12"
                                 "pl-3.5" "pr-10" "py-2.5" "text-base" "font-normal"
-                                "dark:bg-gray-950" "border"
-                                "border-gray-200/10" "placeholder-gray-300/40"
+                                "dark:bg-gray-950" "border" "placeholder-gray-300"
+                                "dark:border-gray-200/10" "dark:placeholder-gray-300/40" "border-gray-200/60"
                                 "focus:outline-none" "focus:border-cyan-600" "focus:ring-1" "focus:ring-cyan-600"]})
           ($ :button {:class ["absolute" "right-3.5" "bottom-9" "mb-1.5" "z-20" "dark:text-white" "text-gray-700"
                               (when-not (seq prompt) "opacity-20")]
@@ -103,27 +107,27 @@
 
 (defnc Message [{:keys [user? children copy->clipboard]}]
   (let [[copied copy!] (use-copy-to-clipboard)]
-    ($ :div {:class ["lg:max-w-[85%]" "flex" "gap-3"
+    ($ :div {:class ["lg:max-w-[85%]" "flex" "gap-3" "w-full"
                      (if user? "place-self-end flex-row-reverse" "place-self-start")]}
        ($ :div {:class ["shrink-0" "flex" "flex-col"]}
           ($ :div {:class ["rounded" "w-10" "h-10" "flex" "justify-center"
                            (if user?
                              "items-center dark:bg-gray-700/75 bg-gray-200"
                              "items-end dark:bg-white bg-gray-800")
-                           (when copy->clipboard "mb-4")]}
+                           (when copy->clipboard "mb-3")]}
              (if user?
                ($ User)
                ($ Ollama)))
           (when copy->clipboard
             ($ IconButton {:icon (if copied Check Clipboard)
                            :on-click #(copy! copy->clipboard)})))
-       ($ :div {:class ["h-fit" "rounded-md" "px-4" "py-3" "flex" "flex-col" "gap-2.5" "overflow-scroll"
+       ($ :div {:class ["h-fit" "w-full" "rounded-md" "p-4" "flex" "flex-col" "gap-2.5" "overflow-scroll"
                         (if user?
-                          "border border-gray-100/20"
+                          "border dark:border-gray-100/20 border-gray-400/50"
                           "dark:bg-gray-800/50 bg-gray-50 dark:text-white")]}
           children))))
 
-(defnc Markdown [{:keys [children]}]
+(defnc Markdown [{:keys [children user?]}]
   ($ ReactMarkdown
      {:children children
       :className "markdown-body"
@@ -131,12 +135,20 @@
       #js{:code
           (fn [props]
             (let [{:keys [inline className children]} (j/lookup props)
-                  language (second (str/split className #"-"))]
+                  language (second (str/split className #"-"))
+                  [copied copy!] (use-copy-to-clipboard)]
               (if (and (not inline)
                        (seq language))
-                ($ Prism {:children (or (first children) "")
-                          :language language
-                          :style nord})
+                (<>
+                 ($ :div {:class ["absolute" "right-1.5" "top-1.5" "z-10"]}
+                    ($ IconButton {:icon (if copied Check Clipboard)
+                                   :on-click #(copy! (first children))}))
+                 ($ Light {:children (or (first children) "")
+                           :language language
+                           :style (if dark-mode? nord githubGist)
+                           :customStyle #js {:borderRadius "4px"
+                                             :padding "16px"}
+                           :className (when user? "border border-gray-200/50")}))
                 ($ :code {} children))))}}))
 
 (defnc Dialog []
@@ -188,7 +200,7 @@
     (useHotkeys "ctrl+shift+down" ->bottom)
 
     ($ :div {:class ["flex" "flex-col" "relative" "w-full" "h-screen"]}
-       ($ :div {:class ["z-20" "absolute" "top-0" "inset-x-0" "h-9"
+       ($ :div {:class ["dark:block" "hidden" "z-20" "absolute" "top-0" "inset-x-0" "h-9"
                         "bg-gradient-to-t" "dark:to-gray-900" "to-white" "from-transparent" "pointer-events-none"]})
        ($ :div {:class ["absolute" "top-4" "right-4" "z-30" "flex" "flex-col"]}
           ($ IconButton {:on-click #(dispatch [:delete-dialog selected-dialog])
@@ -209,12 +221,8 @@
              (for [{:keys [prompt answer timestamp meta]} exchanges]
                ($ :div {:class ["flex" "flex-col" "gap-6" "mt-6"]
                         :key timestamp}
-                  (let [prompt? (seq (str/trim prompt))]
-                    ($ Message {:user? true}
-                       ($ :div {:class [(when-not prompt? "text-gray-400 italic")]}
-                          (if prompt?
-                            ($ Markdown {} prompt)
-                            "Empty"))))
+                  ($ Message {:user? true}
+                     ($ Markdown {:user? true} prompt))
                   ($ Message {:user? false
                               :copy->clipboard (:response meta)}
                      (if answer
@@ -226,9 +234,9 @@
 
 (defnc SidebarItem [{:keys [selected? on-click children]}]
   (let [class #{"border-transparent"}
-        selected-class #{"dark:text-white" "cursor-default" "bg-gray-100/60" "dark:bg-gray-800/50" "border-cyan-500"}]
+        selected-class #{"dark:text-white" "cursor-default" "bg-gray-300/20" "dark:bg-gray-800/50" "border-cyan-500"}]
     ($ :button {:class (vec (union #{"px-3" "py-1.5" "text-sm" "w-full" "text-left" "rounded"
-                                     "dark:hover:bg-gray-800/60" "hover:bg-gray-100/50" "border-l-4"}
+                                     "dark:hover:bg-gray-800/60" "hover:bg-gray-300/20" "border-l-4"}
                                    (if selected? selected-class class)))
                 :on-click on-click}
        children)))
@@ -280,7 +288,7 @@
         dialogs (use-sub [:dialogs])]
 
     (<>
-     ($ :div {:class ["dark:bg-gray-950" "bg-gray-50/50" "w-[350px]"
+     ($ :div {:class ["dark:bg-gray-950" "bg-gray-50" "w-[350px]"
                       "flex" "flex-col" "shrink-0" "p-6"]}
         ($ :div {:class ["flex" "items-center" "justify-between" "mb-4"]}
            ($ :div {:class ["flex" "items-center" "gap-3"]}
@@ -293,7 +301,7 @@
                           :on-click toggle-sidebar!
                           :icon PanelLeftClose}))
         ($ :div {:class ["grow" "overflow-scroll"]}
-           ($ :ul {:class ["flex" "flex-col" "gap-y-2"]}
+           ($ :ul {:class ["flex" "flex-col" "gap-y-1"]}
               (if (seq dialogs)
                 (for [[uuid dialog] dialogs]
                   (let [selected? (= selected-dialog uuid)
@@ -305,10 +313,10 @@
                                                     (dispatch [:set-selected-model (:model-name dialog)]))}
                           ($ :p {:class ["truncate" (when-not (:title dialog) "italic opacity-75")]} (or (:title dialog) "New Chat"))
                           ($ :div {:class ["flex" "items-center" "justify-between"]}
-                             ($ :p {:class ["text-xs" "dark:text-gray-100" "text-gray-500"]}
+                             ($ :p {:class ["text-xs" "dark:text-gray-100" "text-gray-600/80"]}
                                 model-name
-                                ($ :span {:class ["opacity-50" "grow"]} ":" model-version))
-                             ($ :p {:class ["text-xs" "dark:text-gray-300/50" "text-gray-300"]}
+                                ($ :span {:class ["opacity-60" "grow"]} ":" model-version))
+                             ($ :p {:class ["text-xs" "dark:text-gray-300/50" "text-gray-400"]}
                                 (formatDistance
                                  (fromUnixTime (:timestamp dialog))
                                  (new js/Date)
