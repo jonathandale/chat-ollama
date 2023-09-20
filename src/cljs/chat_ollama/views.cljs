@@ -156,6 +156,7 @@
         exchanges (use-sub [:dialog-exchanges])
         selected-model (use-sub [:selected-model])
         selected-dialog (use-sub [:selected-dialog])
+        {:keys [title model-name]} (use-sub [:dialog selected-dialog])
         [model-name model-version] (str/split selected-model #":")
         [->top-disabled? set->top-disabled] (use-state true)
         [->bottom-disabled? set->bottom-disabled] (use-state true)
@@ -180,6 +181,9 @@
                       (set->top-disabled (not (pos? scroll-top)))
                       (set->bottom-disabled (not (pos? scroll-bottom)))))
                   500)]
+    (use-effect
+     [title]
+     (j/assoc! js/document :title (str model-name " — " (or title "New Chat"))))
 
     (use-effect
      [exchanges]
