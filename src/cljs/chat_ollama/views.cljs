@@ -97,8 +97,8 @@
                         :rows 1
                         :class ["w-full" "resize-none" "rounded" "relative" "z-10" "h-12"
                                 "pl-3.5" "pr-10" "py-2.5" "text-base" "font-normal"
-                                "dark:bg-gray-950" "border" "placeholder-gray-300"
-                                "dark:border-gray-200/10" "dark:placeholder-gray-300/40" "border-gray-200/60"
+                                "dark:bg-gray-950" "border" "placeholder-gray-400/75"
+                                "dark:border-gray-200/10" "dark:placeholder-gray-300/40" "border-gray-300/60"
                                 "focus:outline-none" "focus:border-cyan-600" "focus:ring-1" "focus:ring-cyan-600"]})
           ($ :button {:class ["absolute" "right-3.5" "bottom-9" "mb-1.5" "z-20" "dark:text-white" "text-gray-700"
                               (when-not (seq prompt) "opacity-20")]
@@ -214,7 +214,7 @@
        ($ :div {:ref ref!
                 :class ["relative" "grow" "flex" "flex-col" "w-full" "overflow-scroll"]
                 :on-scroll slow-on-scroll}
-          ($ :p {:class ["text-sm" "dark:text-gray-100" "text-gray-500" "text-center" "p-6"]}
+          ($ :p {:class ["text-sm" "dark:text-gray-100" "text-gray-600" "text-center" "p-6"]}
              model-name
              ($ :span {:class ["opacity-50"]} ":" model-version))
           ($ :div {:class ["flex" "flex-col" "w-full" "grow" "max-w-6xl" "mx-auto" "justify-end" "pt-6" "pb-36" "px-20"]}
@@ -234,7 +234,7 @@
 
 (defnc SidebarItem [{:keys [selected? on-click children]}]
   (let [class #{"border-transparent"}
-        selected-class #{"dark:text-white" "cursor-default" "bg-gray-300/20" "dark:bg-gray-800/50" "border-cyan-500"}]
+        selected-class #{"dark:text-white" "cursor-default" "bg-gray-300/20" "dark:bg-gray-800/50" "border-cyan-600"}]
     ($ :button {:class (vec (union #{"px-3" "py-1.5" "text-sm" "w-full" "text-left" "rounded"
                                      "dark:hover:bg-gray-800/60" "hover:bg-gray-300/20" "border-l-4"}
                                    (if selected? selected-class class)))
@@ -250,15 +250,16 @@
          ($ :div {:class ["absolute" "top-4" "right-4"]}
             ($ IconButton {:on-click on-close
                            :icon X})))
-       ($ :h1 {:class ["text-white" "text-3xl"]}
+       ($ :h1 {:class ["dark:text-white" "text-3xl"]}
           "Start a new Dialog")
-       ($ :h2 {:class ["text-lg" "text-white/40" "mb-10"]}
+       ($ :h2 {:class ["text-lg" "dark:text-white/40" "text-gray-800/60" "mb-10"]}
           "Choose which model you want to send messages to")
-       ($ :ul {:class ["text-white" "bg-gray-950/30" "w-full" "max-w-2xl" "overflow-scroll"
+       ($ :ul {:class ["dark:text-white" "dark:bg-gray-950/30" "bg-white/75" "w-full" "max-w-2xl" "overflow-scroll"
                        "rounded" "border" "border-gray-700/40" "divide-y" "divide-gray-700/50"]}
           (for [model models]
             (let [[model-name model-version] (str/split (:name model) #":")]
-              ($ :li {:key (:digest model)}
+              ($ :li {:key (:digest model)
+                      :class ["hover:text-white"]}
                  ($ :button {:class ["text-left" "w-full" "hover:bg-cyan-700" "pl-3" "pr-5" "py-2"
                                      "flex" "items-center" "justify-between" "group"]
                              :on-click #(do
@@ -279,7 +280,8 @@
                              (b->gb (:size model)) "GB")
                           ($ :span {:class ["opacity-20"]}
                              (subs (:digest model) 0 7))))
-                    ($ :div {:class ["p-1.5" "rounded" "bg-cyan-700" "group-hover:bg-white" "group-hover:text-cyan-700"]}
+                    ($ :div {:class ["p-1.5" "rounded" "bg-cyan-700" "text-white"
+                                     "group-hover:bg-white" "group-hover:text-cyan-700"]}
                        ($ Plus))))))))))
 
 (defnc Sidebar [{:keys [set-dialog-chooser! toggle-sidebar!]}]
@@ -370,7 +372,7 @@
 
     ($ :div {:class ["flex" "dark:text-white" "relative" "w-full"]}
        (when (or (empty? dialogs) dialog-chooser?)
-         ($ :div {:class ["absolute" "inset-0" "bg-gray-900/75" "backdrop-blur-md" "z-50" "w-full" "h-full"]}
+         ($ :div {:class ["absolute" "inset-0" "dark:bg-gray-900/75" "bg-white/30" "backdrop-blur-md" "z-50" "w-full" "h-full"]}
             ($ StartDialog {:on-close (when (seq dialogs) #(set-dialog-chooser! false))})))
        (if show-sidebar?
          ($ Sidebar {:set-dialog-chooser! set-dialog-chooser!
