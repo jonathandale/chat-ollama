@@ -2,7 +2,8 @@
   (:require [promesa.core :as p]
             [applied-science.js-interop :as j]
             [cljs-bean.core :refer [->js ->clj]]
-            [refx.alpha :refer [dispatch reg-fx]]))
+            [refx.alpha :refer [dispatch reg-fx]]
+            [clojure.string :as str]))
 
 (defn request->fetch
   [{:as   request
@@ -62,14 +63,22 @@
                 (dispatch (conj on-success data))
                 (let [chunk (-> (new js/TextDecoder)
                                 (j/call :decode value))
-                      {:keys [response] :as result}
-                      (->clj (parse-chunk chunk))
-                      has-value? (seq response)]
-                  (when has-value?
-                    (dispatch (conj on-progress {:text response})))
-                  (p/recur (if has-value?
-                             (update data :response #(str % response))
-                             (merge data result))))))))))
+                      lines (str/split-lines chunk)
+                      buffer (atom "")
+                      final-result (atom nil)]
+
+                  (doseq [line lines]
+                    (let [{:keys [response] :as result} (->clj (parse-chunk line))
+                          has-value? (seq response)]
+                      (if has-value?
+                        (do
+                          (swap! buffer str response)
+                          (dispatch (conj on-progress {:text response})))
+                        (reset! final-result result))))
+
+                  (p/recur (if (some? @final-result)
+                             (merge data @final-result)
+                             (update data :response #(str % @buffer)))))))))))
     (catch js/Error error
       (js/console.log "Error" error))))
 
