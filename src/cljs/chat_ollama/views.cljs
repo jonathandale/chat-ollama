@@ -107,7 +107,7 @@
 
 (defnc Message [{:keys [user? children copy->clipboard]}]
   (let [[copied copy!] (use-copy-to-clipboard)]
-    ($ :div {:class ["lg:max-w-[85%]" "flex" "gap-3" "w-full"
+    ($ :div {:class ["max-w-full" "lg:max-w-[85%]" "flex" "gap-3"
                      (if user? "place-self-end flex-row-reverse" "place-self-start")]}
        ($ :div {:class ["shrink-0" "flex" "flex-col"]}
           ($ :div {:class ["rounded" "w-10" "h-10" "flex" "justify-center"
@@ -123,7 +123,7 @@
                            :on-click #(copy! copy->clipboard)})))
        ($ :div {:class ["h-fit" "w-full" "rounded-md" "p-4" "flex" "flex-col" "gap-2.5" "overflow-scroll"
                         (if user?
-                          "border dark:border-gray-100/20 border-gray-400/50"
+                          "dark:bg-black/20 border dark:border-none border-gray-300/50"
                           "dark:bg-gray-800/50 bg-gray-50 dark:text-white")]}
           children))))
 
@@ -148,7 +148,7 @@
                            :style (if dark-mode? nord githubGist)
                            :customStyle #js {:borderRadius "4px"
                                              :padding "16px"}
-                           :className (when user? "border border-gray-200/50")}))
+                           :className (when user? "border dark:border-none border-gray-300/50")}))
                 ($ :code {} children))))}}))
 
 (defnc Dialog []
@@ -156,7 +156,7 @@
         exchanges (use-sub [:dialog-exchanges])
         selected-model (use-sub [:selected-model])
         selected-dialog (use-sub [:selected-dialog])
-        {:keys [title model-name]} (use-sub [:dialog selected-dialog])
+        {:keys [title]} (use-sub [:dialog selected-dialog])
         [model-name model-version] (str/split selected-model #":")
         [->top-disabled? set->top-disabled] (use-state true)
         [->bottom-disabled? set->bottom-disabled] (use-state true)
@@ -259,7 +259,8 @@
        ($ :h2 {:class ["text-lg" "dark:text-white/40" "text-gray-800/60" "mb-10"]}
           "Choose which model you want to send messages to")
        ($ :ul {:class ["dark:text-white" "dark:bg-gray-950/30" "bg-white/75" "w-full" "max-w-2xl" "overflow-scroll"
-                       "rounded" "border" "border-gray-700/40" "divide-y" "divide-gray-700/50"]}
+                       "rounded" "border" "dark:border-gray-700/40" "border-gray-400/50"
+                       "divide-y" "dark:divide-gray-700/50" "divide-gray-400/50"]}
           (for [model models]
             (let [[model-name model-version] (str/split (:name model) #":")]
               ($ :li {:key (:digest model)

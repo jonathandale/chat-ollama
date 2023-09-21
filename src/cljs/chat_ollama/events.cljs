@@ -122,15 +122,21 @@
  (fn [{:keys [db]} [_ {:keys [selected-dialog prompt]}]]
    (let [new-uuid (str (random-uuid))
          timestamp (getUnixTime (new js/Date))
-         first-prompt? (nil? (get-in db [:dialogs selected-dialog :exchanges]))]
+         context (->> (get-in db [:dialogs selected-dialog :exchanges])
+                      vals
+                      (sort-by > :timestamp)
+                      first
+                      :meta
+                      :context)]
      {:db (cond-> db
             :always
             (assoc-in [:dialogs selected-dialog :exchanges new-uuid]
                       {:prompt prompt
                        :timestamp timestamp})
-            first-prompt?
+            (nil? context)
             (assoc-in [:dialogs selected-dialog :title] prompt))
       :dispatch [:get-answer {:prompt prompt
+                              :context context
                               :dialog-uuid selected-dialog
                               :exchange-uuid new-uuid}]})))
 
@@ -159,11 +165,13 @@
 (reg-event-fx
  :get-answer
  ollama-interceptors
- (fn [{:keys [db]} [_ {:keys [prompt] :as payload}]]
+ (fn [{:keys [db]} [_ {:keys [prompt context] :as payload}]]
    {:fetch-stream {:url (str api-base "/api/generate")
                    :method :post
-                   :body {:model (:selected-model db)
-                          :prompt prompt}
+                   :body (cond-> {:model (:selected-model db)
+                                  :prompt prompt}
+                           (some? context)
+                           (assoc :context context))
                    :on-progress [:get-answer-progress payload]
                    :on-success [:get-answer-success payload]
                    :on-failure [:get-answer-failure payload]}}))
