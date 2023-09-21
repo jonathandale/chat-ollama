@@ -182,8 +182,11 @@
                       (set->bottom-disabled (not (pos? scroll-bottom)))))
                   500)]
     (use-effect
-     [title]
-     (j/assoc! js/document :title (str model-name " — " (or title "New Chat"))))
+     [title model-name]
+     (j/assoc! js/document :title
+               (if (seq model-name)
+                 (str model-name " : " (or title "New Chat") " — Chat Ollama")
+                 "Chat Ollama")))
 
     (use-effect
      [exchanges]
