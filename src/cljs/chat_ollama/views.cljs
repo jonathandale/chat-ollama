@@ -14,8 +14,9 @@
             ["react-hotkeys-hook" :refer [useHotkeys]]
             ["date-fns" :refer [formatDistance fromUnixTime parseISO]]
             ["lucide-react" :refer [Clipboard Check Plus X User MessagesSquare Trash2
-                                    PanelLeftClose PanelLeftOpen SendHorizontal
+                                    PanelLeftClose PanelLeftOpen SendHorizontal XOctagon
                                     ArrowUpToLine ArrowDownToLine]]))
+
 (defonce dark-mode? (j/get (js/matchMedia "(prefers-color-scheme: dark)") :matches))
 (defonce max-textarea-height 500)
 (defonce min-textarea-height 48)
@@ -26,7 +27,7 @@
   (j/call (/ bytes 1024 1024 1024) :toFixed 2))
 
 (defnc Ollama []
-  ($ :svg {:class ["dark:fill-gray-900" "fill-white" "w-[21px]" "h-[27px]" "scale-110"]
+  ($ :svg {:class ["dark:fill-gray-900" "fill-white" "w-[21px]" "h-[27px]" "scale-125"]
            :xmlns "http://www.w3.org/2000/svg"}
      ($ :path {:d "M19.642 27h-1.498c.315-1.119.308-2.208-.022-3.266-.177-.568-.915-1.363-.497-1.933 1.421-1.94 1.16-4.045.06-5.995-.133-.234-.148-.542.014-.74 1.088-1.333 1.29-2.789.606-4.369-.56-1.293-1.861-2.349-3.327-2.3-.253.007-.495.016-.726.027a.29.29 0 0 1-.28-.177c-.498-1.168-1.373-1.928-2.624-2.281-1.737-.49-3.658.459-4.423 2.072-.116.244-.147.388-.468.377-.422-.015-.859-.056-1.255.025-2.717.554-3.876 3.896-2.47 6.136.333.528.816.613.353 1.378-1.063 1.762-1.203 4.146.12 5.822.453.576-.384 1.567-.547 2.18-.26.983-.24 1.998.058 3.044H1.211c-.417-1.445-.269-3.32.508-4.648a.081.081 0 0 0-.002-.092C.424 20.28.52 17.66 1.567 15.603a.092.092 0 0 0-.006-.096c-1.279-1.93-1.228-4.524.15-6.385.304-.41.775-.836 1.173-1.236a.102.102 0 0 0 .029-.093 9.956 9.956 0 0 1 .172-4.504c.262-.967.991-2.224 2.099-2.177 1.7.072 2.336 2.658 2.426 3.966a.045.045 0 0 0 .066.036c1.822-1.041 3.643-1.037 5.463.012a.07.07 0 0 0 .104-.056c.073-1.126.441-2.537 1.234-3.384.534-.57 1.306-.75 1.97-.378 1.819 1.018 1.803 4.83 1.494 6.509a.09.09 0 0 0 .028.087c.4.374.659.622.777.745 1.713 1.775 1.845 4.76.526 6.818a.088.088 0 0 0-.004.094c1.053 2.066 1.175 4.724-.145 6.715a.1.1 0 0 0 0 .108c.248.374.428.785.54 1.234a6.65 6.65 0 0 1-.02 3.382ZM5.197 2.62a.07.07 0 0 0-.048-.018.066.066 0 0 0-.047.02c-.93.929-.984 3.236-.81 4.435.006.046.031.063.075.052a8.11 8.11 0 0 1 1.576-.222.114.114 0 0 0 .083-.04c.113-.13.17-.23.174-.301.044-1.116-.128-3.116-1.003-3.926Zm10.602.046a.165.165 0 0 0-.25.023c-.76 1.06-.933 2.549-.904 3.815.002.087.058.2.168.34.022.029.05.043.086.044a6.516 6.516 0 0 1 1.6.24.045.045 0 0 0 .051-.018.046.046 0 0 0 .007-.018c.154-1.116.127-3.574-.758-4.426Z"})
      ($ :path {:d "M13.48 13.144c2.105 2.046.448 4.854-2.154 5.035-.502.035-1.099.037-1.789.006-1.834-.08-3.609-1.734-2.989-3.708.894-2.843 4.981-3.23 6.932-1.333Zm-.323 1.199c-.874-1.46-2.958-1.69-4.342-1.008-.75.369-1.446 1.142-1.387 2.025.148 2.264 3.936 2.163 5.141 1.372.85-.56 1.109-1.518.588-2.39ZM4.607 12.684c-.29.5-.154 1.121.301 1.386.455.265 1.059.075 1.348-.426.289-.5.154-1.12-.302-1.386-.455-.265-1.058-.074-1.347.427ZM14.596 13.65c.293.498.898.683 1.351.414.454-.27.583-.89.29-1.388-.293-.497-.898-.682-1.35-.413-.454.269-.584.89-.29 1.387Z"})
@@ -57,12 +58,15 @@
 (defnc Footer []
   (let [selected-dialog (use-sub [:selected-dialog])
         selected-model (use-sub [:selected-model])
+        {:keys [generating?]} (use-sub [:dialog selected-dialog])
         [prompt set-prompt!] (use-state nil)
-        slowly-set-prompt! (debounce set-prompt! 150)
+        [abort set-abort!] (use-state nil)
+        slowly-set-prompt (debounce set-prompt! 150)
         ref! (use-ref nil)
         send! #(do
                  (dispatch [:send-prompt {:selected-dialog selected-dialog
-                                          :prompt prompt}])
+                                          :prompt prompt
+                                          :set-abort! set-abort!}])
                  (j/assoc! @ref! :value "")
                  (set-prompt! nil))
         on-key-press #(when (and (= (j/get % :key) "Enter")
@@ -86,20 +90,31 @@
        (j/call @ref! :focus)))
 
     ($ :div {:class ["absolute" "bottom-0" "inset-x-0"]}
+
        ($ :div {:class ["dark:bg-gray-900" "bg-white" "z-10" "max-w-5xl" "mx-auto" "absolute" "bottom-0" "pb-6" "inset-x-16"]}
+          (when (and generating? (fn? abort))
+            ($ :button {:class ["absolute" "right-0" "bottom-20" "mb-3.5"
+                                "z-20" "text-white" "text-sm" "flex" "items-center" "p-2" "gap-2"
+                                "bg-white/10" "hover:bg-white/20" "rounded" "shadow-lg" "backdrop-blur"]
+                        :on-click abort}
+               ($ XOctagon {:size 16})
+               ($ :span {} "Stop")))
           ($ :div {:class ["z-0" "absolute" "top-0" "-translate-y-full" "inset-x-0" "h-9"
                            "bg-gradient-to-t" "dark:from-gray-900" "from-white" "to-transparent" "pointer-events-none"]})
           ($ :textarea {:ref ref!
                         :key selected-dialog
                         :placeholder (str "Send message to " selected-model)
-                        :onChange #(slowly-set-prompt! (j/get-in % [:target :value]))
+                        :onChange #(slowly-set-prompt (j/get-in % [:target :value]))
                         :onKeyPress on-key-press
+                        :disabled generating?
                         :rows 1
                         :class ["w-full" "resize-none" "rounded" "relative" "z-10" "h-12"
                                 "pl-3.5" "pr-10" "py-2.5" "text-base" "font-normal"
                                 "dark:bg-gray-950" "border" "placeholder-gray-400/75"
                                 "dark:border-gray-200/10" "dark:placeholder-gray-300/40" "border-gray-300/60"
-                                "focus:outline-none" "focus:border-cyan-600" "focus:ring-1" "focus:ring-cyan-600"]})
+                                "focus:outline-none" "focus:border-cyan-600" "focus:ring-1" "focus:ring-cyan-600"
+                                "disabled:opacity-75"]})
+
           ($ :button {:class ["absolute" "right-3.5" "bottom-9" "mb-1.5" "z-20" "dark:text-white" "text-gray-700"
                               (when-not (seq prompt) "opacity-20")]
                       :on-click send!}
@@ -225,7 +240,7 @@
              model-name
              ($ :span {:class ["opacity-50"]} ":" model-version))
           ($ :div {:class ["flex" "flex-col" "w-full" "grow" "max-w-6xl" "mx-auto" "justify-end" "pt-6" "pb-36" "px-20"]}
-             (for [{:keys [prompt answer timestamp meta]} exchanges]
+             (for [{:keys [prompt answer aborted? timestamp meta]} exchanges]
                ($ :div {:class ["flex" "flex-col" "gap-6" "mt-6"]
                         :key timestamp}
                   ($ Message {:user? true}
@@ -236,7 +251,10 @@
                        ($ Markdown {} answer)
                        ($ :div {:class ["flex" "flex-col" "gap-2" "my-1" "animate-pulse" "min-w-[250px]"]}
                           ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded"]})
-                          ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded" "w-[75%]"]}))))))))
+                          ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded" "w-[75%]"]})))
+                     (when aborted?
+                       ($ :p {:class ["dark:text-white/20" "text-sm" "mt-2" "italic"]}
+                          "The answer was stopped before finishing")))))))
        ($ Footer))))
 
 (defnc SidebarItem [{:keys [selected? on-click children]}]
