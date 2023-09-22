@@ -13,6 +13,7 @@
             ["react-syntax-highlighter" :refer [Light]]
             ["react-hotkeys-hook" :refer [useHotkeys]]
             ["date-fns" :refer [formatDistance fromUnixTime parseISO]]
+            ["@react-spring/web" :refer [useSpring animated]]
             ["lucide-react" :refer [Clipboard Check Plus X User MessagesSquare Trash2
                                     PanelLeftClose PanelLeftOpen SendHorizontal XOctagon
                                     ArrowUpToLine ArrowDownToLine]]))
@@ -21,6 +22,7 @@
 (defonce max-textarea-height 500)
 (defonce min-textarea-height 48)
 (defonce line-height 48)
+(defonce sidebar-width 350)
 (defonce ls-chat-ollama-prefs "chat-ollama:prefs:")
 
 (defn- b->gb [bytes]
@@ -316,52 +318,52 @@
                                      "group-hover:bg-white" "group-hover:text-cyan-700"]}
                        ($ Plus))))))))))
 
-(defnc Sidebar [{:keys [set-dialog-chooser! toggle-sidebar!]}]
+(defnc Sidebar [{:keys [set-dialog-chooser! toggle-sidebar! style]}]
   (let [selected-model (use-sub [:selected-model])
         selected-dialog (use-sub [:selected-dialog])
         dialogs (use-sub [:dialogs])]
 
-    (<>
-     ($ :div {:class ["dark:bg-gray-950" "bg-gray-50" "w-[350px]"
-                      "flex" "flex-col" "shrink-0" "p-6"]}
-        ($ :div {:class ["flex" "items-center" "justify-between" "mb-4"]}
-           ($ :div {:class ["flex" "items-center" "gap-3"]}
-              ($ MessagesSquare)
-              ($ :p {:class ["text-lg"]}
-                 "Dialogs"
-                 ($ :span {:class ["opacity-50" "ml-2"]}
-                    (count dialogs))))
-           ($ IconButton {:class ["-m-2"]
-                          :on-click toggle-sidebar!
-                          :icon PanelLeftClose}))
-        ($ :div {:class ["grow" "overflow-scroll"]}
-           ($ :ul {:class ["flex" "flex-col" "gap-y-1"]}
-              (if (seq dialogs)
-                (for [[uuid dialog] dialogs]
-                  (let [selected? (= selected-dialog uuid)
-                        [model-name model-version] (str/split (:model-name dialog) #":")]
-                    ($ :li {:key uuid}
-                       ($ SidebarItem {:selected? selected?
-                                       :on-click #(do
-                                                    (dispatch [:set-selected-dialog uuid])
-                                                    (dispatch [:set-selected-model (:model-name dialog)]))}
-                          ($ :p {:class ["truncate" (when-not (:title dialog) "italic opacity-75")]} (or (:title dialog) "New Chat"))
-                          ($ :div {:class ["flex" "items-center" "justify-between"]}
-                             ($ :p {:class ["text-xs" "dark:text-gray-100" "text-gray-600/80"]}
-                                model-name
-                                ($ :span {:class ["opacity-60" "grow"]} ":" model-version))
-                             ($ :p {:class ["text-xs" "dark:text-gray-300/50" "text-gray-400"]}
-                                (formatDistance
-                                 (fromUnixTime (:timestamp dialog))
-                                 (new js/Date)
-                                 #js {:addSuffix true})))))))
-                ($ :p {:class ["dark:text-white/40"]}
-                   (str "No dialogs found for " selected-model)))))
-        ($ :button {:on-click #(set-dialog-chooser! true)
-                    :class ["bg-cyan-600" "hover:bg-cyan-700" "text-white" "flex" "px-4" "py-2.5"
-                            "items-center" "rounded" "justify-between"]}
-           "New dialog"
-           ($ Plus))))))
+    ($ :div {:style (j/assoc! style :width sidebar-width)
+             :class ["dark:bg-gray-950" "bg-gray-50"
+                     "flex" "flex-col" "shrink-0" "p-6"]}
+       ($ :div {:class ["flex" "items-center" "justify-between" "mb-4"]}
+          ($ :div {:class ["flex" "items-center" "gap-3"]}
+             ($ MessagesSquare)
+             ($ :p {:class ["text-lg"]}
+                "Dialogs"
+                ($ :span {:class ["opacity-50" "ml-2"]}
+                   (count dialogs))))
+          ($ IconButton {:class ["-m-2"]
+                         :on-click toggle-sidebar!
+                         :icon PanelLeftClose}))
+       ($ :div {:class ["grow" "overflow-scroll"]}
+          ($ :ul {:class ["flex" "flex-col" "gap-y-1"]}
+             (if (seq dialogs)
+               (for [[uuid dialog] dialogs]
+                 (let [selected? (= selected-dialog uuid)
+                       [model-name model-version] (str/split (:model-name dialog) #":")]
+                   ($ :li {:key uuid}
+                      ($ SidebarItem {:selected? selected?
+                                      :on-click #(do
+                                                   (dispatch [:set-selected-dialog uuid])
+                                                   (dispatch [:set-selected-model (:model-name dialog)]))}
+                         ($ :p {:class ["truncate" (when-not (:title dialog) "italic opacity-75")]} (or (:title dialog) "New Chat"))
+                         ($ :div {:class ["flex" "items-center" "justify-between"]}
+                            ($ :p {:class ["text-xs" "dark:text-gray-100" "text-gray-600/80"]}
+                               model-name
+                               ($ :span {:class ["opacity-60" "grow"]} ":" model-version))
+                            ($ :p {:class ["text-xs" "dark:text-gray-300/50" "text-gray-400"]}
+                               (formatDistance
+                                (fromUnixTime (:timestamp dialog))
+                                (new js/Date)
+                                #js {:addSuffix true})))))))
+               ($ :p {:class ["dark:text-white/40"]}
+                  (str "No dialogs found for " selected-model)))))
+       ($ :button {:on-click #(set-dialog-chooser! true)
+                   :class ["bg-cyan-600" "hover:bg-cyan-700" "text-white" "flex" "px-4" "py-2.5"
+                           "items-center" "rounded" "justify-between"]}
+          "New dialog"
+          ($ Plus)))))
 
 (defnc Offline []
   (let [[copied copy!] (use-copy-to-clipboard)
@@ -392,7 +394,16 @@
                      ls-sidebar?
                      true))
         toggle-sidebar! #(set-show-sidebar! not)
-        dialogs (use-sub [:dialogs])]
+        dialogs (use-sub [:dialogs])
+        sidebar-props (useSpring #js {:marginLeft
+                                      (if show-sidebar?
+                                        "0"
+                                        (str (- sidebar-width) "px"))})
+        sidebar-icon-props (useSpring #js {:transform
+                                           (if show-sidebar?
+                                             (str "translateX(-300%)")
+                                             (str "translateX(0%)"))})
+        AnimatedSidebar (animated Sidebar)]
 
     (useHotkeys "ctrl+n" #(when-not dialog-chooser? (set-dialog-chooser! true)))
     (useHotkeys "ctrl+d" toggle-sidebar!)
@@ -408,12 +419,16 @@
        (when (or (empty? dialogs) dialog-chooser?)
          ($ :div {:class ["absolute" "inset-0" "dark:bg-gray-900/75" "bg-white/30" "backdrop-blur-md" "z-50" "w-full" "h-full"]}
             ($ StartDialog {:on-close (when (seq dialogs) #(set-dialog-chooser! false))})))
-       (if show-sidebar?
-         ($ Sidebar {:set-dialog-chooser! set-dialog-chooser!
-                     :toggle-sidebar! toggle-sidebar!})
-         ($ :div {:class ["absolute" "top-4" "left-4" "z-30"]}
-            ($ IconButton {:on-click toggle-sidebar!
-                           :icon PanelLeftOpen})))
+
+       ($ AnimatedSidebar {:set-dialog-chooser! set-dialog-chooser!
+                           :toggle-sidebar! toggle-sidebar!
+                           :style sidebar-props})
+
+       ($ (j/get animated :div)
+          {:className "absolute top-0 left-0 p-4 z-30"
+           :style sidebar-icon-props}
+          ($ IconButton {:on-click toggle-sidebar!
+                         :icon PanelLeftOpen}))
        ($ Dialog))))
 
 (defnc Main []
@@ -424,9 +439,6 @@
      (dispatch [:get-models]))
 
     ($ :div {:class ["flex" "w-full" "h-full" "relative"]}
-       (cond
-         ollama-offline?
+       (if ollama-offline?
          ($ Offline)
-
-         :else
          ($ Dialogs)))))
