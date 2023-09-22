@@ -254,7 +254,12 @@
                           ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded" "w-[75%]"]})))
                      (when aborted?
                        ($ :p {:class ["dark:text-white/20" "text-sm" "mt-2" "italic"]}
-                          "The answer was stopped before finishing")))))))
+                          "The answer was stopped before finishing"))
+                     (when (some? meta)
+                       ($ :p {:class ["dark:text-white/20" "text-sm" "mt-2" "italic"]}
+                          (str "Took ~" (j/call js/Math :round (/ (:total_duration meta) 1e+9))
+                               " seconds, at " (j/call js/Math :round (/ (:eval_count meta) (/ (:eval_duration meta) 1e+9)))
+                               " tokens per second."))))))))
        ($ Footer))))
 
 (defnc SidebarItem [{:keys [selected? on-click children]}]

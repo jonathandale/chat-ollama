@@ -47,7 +47,6 @@
     :or   {on-success [:http-no-on-success]
            on-progress [:http-no-on-progress]
            on-failure [:http-no-on-failure]}}]
-  (js/console.log "signal" signal)
   (try
     (p/let [response (js/fetch url #js{:method "post"
                                        :body (j/call js/JSON :stringify (->js body))
