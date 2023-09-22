@@ -94,8 +94,9 @@
        ($ :div {:class ["dark:bg-gray-900" "bg-white" "z-10" "max-w-5xl" "mx-auto" "absolute" "bottom-0" "pb-6" "inset-x-16"]}
           (when (and generating? (fn? abort))
             ($ :button {:class ["absolute" "right-0" "bottom-20" "mb-3.5"
-                                "z-20" "text-white" "text-sm" "flex" "items-center" "p-2" "gap-2"
-                                "bg-white/10" "hover:bg-white/20" "rounded" "shadow-lg" "backdrop-blur"]
+                                "z-20" "dark:text-white" "text-gray-700" "text-sm" "flex" "items-center" "p-2" "gap-2"
+                                "bg-gray-300/40" "hover:bg-gray-300/50"
+                                "dark:bg-white/10" "dark:hover:bg-white/20" "rounded" "shadow" "backdrop-blur"]
                         :on-click abort}
                ($ XOctagon {:size 16})
                ($ :span {} "Stop")))
@@ -256,7 +257,7 @@
                        ($ :p {:class ["dark:text-white/20" "text-sm" "mt-2" "italic"]}
                           "The answer was stopped before finishing"))
                      (when (some? meta)
-                       ($ :p {:class ["dark:text-white/20" "text-sm" "mt-2" "italic"]}
+                       ($ :p {:class ["dark:text-white/20" "text-gray-300" "text-sm" "mt-2" "italic"]}
                           (str "Took ~" (j/call js/Math :round (/ (:total_duration meta) 1e+9))
                                " seconds, at " (j/call js/Math :round (/ (:eval_count meta) (/ (:eval_duration meta) 1e+9)))
                                " tokens per second."))))))))
