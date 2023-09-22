@@ -96,6 +96,7 @@
      {:db (-> db
               (assoc-in [:dialogs new-uuid]
                         {:uuid new-uuid
+                         :generating? false
                          :model-name model-name
                          :timestamp timestamp})
               (assoc :selected-model model-name
@@ -119,7 +120,7 @@
 (reg-event-fx
  :send-prompt
  ollama-interceptors
- (fn [{:keys [db]} [_ {:keys [selected-dialog prompt]}]]
+ (fn [{:keys [db]} [_ {:keys [selected-dialog prompt set-abort!]}]]
    (let [new-uuid (str (random-uuid))
          timestamp (getUnixTime (new js/Date))
          context (->> (get-in db [:dialogs selected-dialog :exchanges])
@@ -130,6 +131,8 @@
                       :context)]
      {:db (cond-> db
             :always
+            (assoc-in [:dialogs selected-dialog :generating?] true)
+            :always
             (assoc-in [:dialogs selected-dialog :exchanges new-uuid]
                       {:prompt prompt
                        :timestamp timestamp})
@@ -137,6 +140,7 @@
             (assoc-in [:dialogs selected-dialog :title] prompt))
       :dispatch [:get-answer {:prompt prompt
                               :context context
+                              :set-abort! set-abort!
                               :dialog-uuid selected-dialog
                               :exchange-uuid new-uuid}]})))
 
@@ -144,7 +148,9 @@
  :get-answer-success
  ollama-interceptors
  (fn [{:keys [db]} [_ {:keys [dialog-uuid exchange-uuid]} response]]
-   {:db (assoc-in db [:dialogs dialog-uuid :exchanges exchange-uuid :meta] response)}))
+   {:db (-> db
+            (assoc-in [:dialogs dialog-uuid :exchanges exchange-uuid :meta] response)
+            (assoc-in [:dialogs dialog-uuid :generating?] false))}))
 
 (reg-event-fx
  :get-answer-progress
@@ -159,19 +165,31 @@
 (reg-event-db
  :get-answer-failure
  ollama-interceptors
- (fn [db [_ _ {:keys [status]}]]
-   (assoc db :ollama-offline? (zero? status))))
+ (fn [db [_ {:keys [dialog-uuid]} {:keys [status]}]]
+   (-> db
+       (assoc :ollama-offline? (zero? status))
+       (assoc-in [:dialogs dialog-uuid :generating?] false))))
+
+(reg-event-db
+ :get-answer-abort
+ ollama-interceptors
+ (fn [db [_ {:keys [dialog-uuid exchange-uuid]} _]]
+   (-> db
+       (assoc-in [:dialogs dialog-uuid :generating?] false)
+       (assoc-in [:dialogs dialog-uuid :exchanges exchange-uuid :aborted?] true))))
 
 (reg-event-fx
  :get-answer
  ollama-interceptors
- (fn [{:keys [db]} [_ {:keys [prompt context] :as payload}]]
+ (fn [{:keys [db]} [_ {:keys [prompt context set-abort!] :as payload}]]
    {:fetch-stream {:url (str api-base "/api/generate")
                    :method :post
                    :body (cond-> {:model (:selected-model db)
                                   :prompt prompt}
                            (some? context)
                            (assoc :context context))
+                   :set-abort! set-abort!
                    :on-progress [:get-answer-progress payload]
                    :on-success [:get-answer-success payload]
+                   :on-abort [:get-answer-abort payload]
                    :on-failure [:get-answer-failure payload]}}))

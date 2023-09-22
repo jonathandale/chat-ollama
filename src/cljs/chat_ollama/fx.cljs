@@ -43,13 +43,15 @@
 
 (defn request->fetch-stream
   [{:as   request
-    :keys [url body on-success on-progress on-failure]
+    :keys [url body on-success on-progress on-failure signal]
     :or   {on-success [:http-no-on-success]
            on-progress [:http-no-on-progress]
            on-failure [:http-no-on-failure]}}]
+  (js/console.log "signal" signal)
   (try
     (p/let [response (js/fetch url #js{:method "post"
-                                       :body (j/call js/JSON :stringify (->js body))})]
+                                       :body (j/call js/JSON :stringify (->js body))
+                                       :signal signal})]
       (if-not (j/get response :ok)
         (dispatch (conj on-failure request))
         (let [reader (-> response
@@ -82,4 +84,15 @@
     (catch js/Error error
       (js/console.log "Error" error))))
 
-(reg-fx :fetch-stream request->fetch-stream)
+(reg-fx :fetch-stream
+        (fn [{:keys [set-abort! on-abort] :as request}]
+          (if (fn? set-abort!)
+            (let [controller (new js/AbortController)
+                  signal (j/get controller :signal)]
+              (set-abort! (fn []
+                            #(do
+                               (j/call controller :abort)
+                               (dispatch (conj on-abort request))
+                               (set-abort! nil))))
+              (request->fetch-stream (assoc request :signal signal)))
+            (request->fetch-stream request))))
