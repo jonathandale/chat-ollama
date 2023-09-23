@@ -185,13 +185,14 @@
                           :scrollTo
                           #js{:top (j/get @ref! :scrollHeight)
                               :behavior "smooth"})
-        get-scroll-info #(let [height (-> @ref!
-                                          (j/call :getBoundingClientRect)
-                                          (j/get :height))
-                               scroll-height (j/get @ref! :scrollHeight)
-                               scroll-top (j/get @ref! :scrollTop)]
-                           {:scroll-top scroll-top
-                            :scroll-bottom (- scroll-height (+ height scroll-top))})
+        get-scroll-info #(when @ref!
+                           (let [height (-> @ref!
+                                            (j/call :getBoundingClientRect)
+                                            (j/get :height))
+                                 scroll-height (j/get @ref! :scrollHeight)
+                                 scroll-top (j/get @ref! :scrollTop)]
+                             {:scroll-top scroll-top
+                              :scroll-bottom (- scroll-height (+ height scroll-top))}))
         slow-on-scroll
         (debounce (fn []
                     (let [{:keys [scroll-bottom scroll-top]}
