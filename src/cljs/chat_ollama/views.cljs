@@ -87,8 +87,8 @@
                                    (j/get @ref! :scrollHeight))) "px"))))
 
     (use-effect
-     [@ref!]
-     (when @ref!
+     [@ref! generating?]
+     (when (and @ref! (not generating?))
        (j/call @ref! :focus)))
 
     ($ :div {:class ["absolute" "bottom-0" "inset-x-0"]}
