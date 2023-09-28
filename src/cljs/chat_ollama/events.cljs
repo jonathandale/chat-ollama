@@ -111,10 +111,10 @@
                             :dialogs
                             vals
                             (sort-by :timestamp)
-                            first
-                            :uuid)]
+                            first)]
      {:db (-> purged
-              (assoc :selected-dialog next-selected))})))
+              (assoc :selected-model (:model-name next-selected)
+                     :selected-dialog (:uuid next-selected)))})))
 
 ;; PROMPTS
 (reg-event-fx
