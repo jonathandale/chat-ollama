@@ -3,7 +3,7 @@
             [chat-ollama.db.model :as model]
             [chat-ollama.db.dialog :as dialog]))
 
-(s/def ::ollama-offline? boolean?)
+(s/def ::ollama-offline? (s/nilable boolean?))
 
 (s/def ::db (s/keys :req-un [:chat-ollama.db/ollama-offline?
                              ::model/models
@@ -17,4 +17,4 @@
    :dialogs nil
    :selected-model nil
    :selected-dialog nil
-   :ollama-offline? false})
+   :ollama-offline? nil})

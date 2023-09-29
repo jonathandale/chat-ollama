@@ -46,40 +46,42 @@
     :or   {on-success [:http-no-on-success]
            on-progress [:http-no-on-progress]
            on-failure [:http-no-on-failure]}}]
-  (p/let [response (-> (js/fetch url #js{:method "post"
-                                         :body (j/call js/JSON :stringify (->js body))
-                                         :signal signal})
-                       (p/then #(p/resolved %))
-                       (p/catch #(p/resolved %)))]
-    (if-not (j/get response :ok)
-      (dispatch (conj on-failure {:status 0}))
-      (let [reader (-> response
-                       (j/get :body)
-                       (j/call :getReader))]
-        #_{:clj-kondo/ignore [:unresolved-symbol]}
-        (p/loop [data {:response ""}]
-          (p/let [read (j/call reader :read)
-                  {:keys [done value]} (j/lookup read)]
-            (if (and done (nil? value))
-              (dispatch (conj on-success data))
-              (let [chunk (-> (new js/TextDecoder)
-                              (j/call :decode value))
-                    lines (str/split-lines chunk)
-                    buffer (atom "")
-                    final-result (atom nil)]
+  (-> (js/fetch url #js{:method "post"
+                        :body (j/call js/JSON :stringify (->js body))
+                        :signal signal})
+      (j/call :then
+              (fn [response]
+                (if-not (j/get response :ok)
+                  (dispatch (conj on-failure {:status 0}))
+                  (let [reader (-> response
+                                   (j/get :body)
+                                   (j/call :getReader))]
+                    #_{:clj-kondo/ignore [:unresolved-symbol]}
+                    (p/loop [data {:response ""}]
+                      (p/let [read (j/call reader :read)
+                              {:keys [done value]} (j/lookup read)]
+                        (if (and done (nil? value))
+                          (dispatch (conj on-success data))
+                          (let [chunk (-> (new js/TextDecoder)
+                                          (j/call :decode value))
+                                lines (str/split-lines chunk)
+                                buffer (atom "")
+                                final-result (atom nil)]
 
-                (doseq [line lines]
-                  (let [{:keys [response] :as result} (->clj (parse-chunk line))
-                        has-value? (seq response)]
-                    (if has-value?
-                      (do
-                        (swap! buffer str response)
-                        (dispatch (conj on-progress {:text response})))
-                      (reset! final-result result))))
+                            (doseq [line lines]
+                              (let [{:keys [response] :as result} (->clj (parse-chunk line))
+                                    has-value? (seq response)]
+                                (if has-value?
+                                  (do
+                                    (swap! buffer str response)
+                                    (dispatch (conj on-progress {:text response})))
+                                  (reset! final-result result))))
 
-                (p/recur (if (some? @final-result)
-                           (merge data @final-result)
-                           (update data :response #(str % @buffer))))))))))))
+                            (p/recur (if (some? @final-result)
+                                       (merge data @final-result)
+                                       (update data :response #(str % @buffer))))))))))))
+      (j/call :catch
+              #(dispatch (conj on-failure {:status 0})))))
 
 (reg-fx :fetch-stream
         (fn [{:keys [set-abort! on-abort] :as request}]

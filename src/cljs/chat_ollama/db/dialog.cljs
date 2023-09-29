@@ -8,6 +8,7 @@
 (s/def ::answer (s/nilable string?))
 (s/def ::generating? boolean?)
 (s/def ::aborted? boolean?)
+(s/def ::failed? boolean?)
 
 
 (s/def ::context coll?)
@@ -30,7 +31,7 @@
                       :opt-un [::prompt_eval_duration]))
 
 (s/def ::exchange (s/keys :req-un [::timestamp ::prompt]
-                          :opt-un [::answer ::meta ::aborted?]))
+                          :opt-un [::answer ::meta ::aborted? ::failed?]))
 (s/def ::exchanges (s/nilable (s/map-of ::uuid ::exchange)))
 (s/def ::dialog (s/keys :req-un [::uuid
                                  ::model-name

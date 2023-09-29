@@ -6,7 +6,6 @@
             ["date-fns" :refer (getUnixTime)]))
 
 (defonce api-base "http://127.0.0.1:11434")
-(defonce wait-for 2000)
 (defonce wait-multiplier 1.25)
 (defonce wait-max (* 1000 60 5))
 
@@ -22,17 +21,20 @@
   (->interceptor
    :id :offline?
    :after  (fn [{:keys [coeffects] :as context}]
-
-             (let [{:keys [event]} coeffects
+             (let [{:keys [event db]} coeffects
+                   offline? (:ollama-offline? db)
                    [_ wait {:keys [url status]}] event]
                (if (and (some? url)
                         (zero? status))
-                 (let [new-wait (* (or wait wait-for) wait-multiplier)]
+                 (let [new-wait (when (number? wait)
+                                  (* wait wait-multiplier))]
                    (cond-> context
                      true
                      (assoc-in [:coeffects :db :ollama-offline?] true)
 
-                     (< new-wait wait-max)
+                     (and (not (false? offline?))
+                          (number? new-wait)
+                          (< new-wait wait-max))
                      (update-in [:effects :fx]
                                 conj
                                 [:dispatch-later {:ms new-wait
@@ -165,10 +167,11 @@
 (reg-event-db
  :get-answer-failure
  ollama-interceptors
- (fn [db [_ {:keys [dialog-uuid]} {:keys [status]}]]
+ (fn [db [_ {:keys [dialog-uuid exchange-uuid]} {:keys [status]}]]
    (-> db
        (assoc :ollama-offline? (zero? status))
-       (assoc-in [:dialogs dialog-uuid :generating?] false))))
+       (assoc-in [:dialogs dialog-uuid :generating?] false)
+       (assoc-in [:dialogs dialog-uuid :exchanges exchange-uuid :failed?] true))))
 
 (reg-event-db
  :get-answer-abort
