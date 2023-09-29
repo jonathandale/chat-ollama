@@ -16,7 +16,7 @@
             ["@react-spring/web" :refer [useSpring animated]]
             ["lucide-react" :refer [Clipboard Check Plus X User MessagesSquare Trash2
                                     PanelLeftClose PanelLeftOpen SendHorizontal XOctagon
-                                    ArrowUpToLine ArrowDownToLine]]))
+                                    ArrowUpToLine ArrowDownToLine RefreshCw]]))
 
 (defonce dark-mode? (j/get (js/matchMedia "(prefers-color-scheme: dark)") :matches))
 (defonce max-textarea-height 500)
@@ -244,7 +244,7 @@
              model-name
              ($ :span {:class ["opacity-50"]} ":" model-version))
           ($ :div {:class ["flex" "flex-col" "w-full" "grow" "max-w-6xl" "mx-auto" "justify-end" "pt-6" "pb-36" "px-20"]}
-             (for [{:keys [prompt answer aborted? timestamp meta]} exchanges]
+             (for [{:keys [prompt answer aborted? failed? timestamp meta]} exchanges]
                ($ :div {:class ["flex" "flex-col" "gap-6" "mt-6"]
                         :key timestamp}
                   ($ Message {:user? true}
@@ -253,12 +253,16 @@
                               :copy->clipboard (:response meta)}
                      (if answer
                        ($ Markdown {} answer)
-                       ($ :div {:class ["flex" "flex-col" "gap-2" "my-1" "animate-pulse" "min-w-[250px]"]}
-                          ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded"]})
-                          ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded" "w-[75%]"]})))
+                       (when-not failed?
+                         ($ :div {:class ["flex" "flex-col" "gap-2" "my-1" "animate-pulse" "min-w-[250px]"]}
+                            ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded"]})
+                            ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded" "w-[75%]"]}))))
                      (when aborted?
                        ($ :p {:class ["dark:text-white/20" "text-sm" "mt-2" "italic"]}
                           "The answer was stopped before finishing"))
+                     (when failed?
+                       ($ :p {:class ["dark:text-white/20" "text-sm" "italic"]}
+                          "There was an issue finishing this response."))
                      (when (some? meta)
                        ($ :p {:class ["dark:text-white/20" "text-gray-300" "text-sm" "mt-2" "italic"]}
                           (str "Took ~" (j/call js/Math :round (/ (:total_duration meta) 1e+9))
@@ -279,7 +283,7 @@
   (let [models (use-sub [:models])]
     ($ :div {:class ["flex" "flex-col" "grow" "w-full"
                      "justify-center" "items-center"
-                     "py-20" "h-full"]}
+                     "py-16" "h-full"]}
        (when (fn? on-close)
          ($ :div {:class ["absolute" "top-4" "right-4"]}
             ($ IconButton {:on-click on-close
@@ -371,24 +375,31 @@
         command (if (= "localhost" (j/get js/location :hostname))
                   "ollama serve"
                   (str "OLLAMA_ORIGINS=" (j/get js/location :origin) " ollama serve"))]
-    ($ :div {:class ["flex" "flex-col" "grow" "w-full" "justify-center" "items-center"]}
-       ($ OllamaAsleep)
-       ($ :h1 {:class ["dark:text-white" "text-3xl" "mt-6"]}
-          "Looks like Ollama is asleep!")
-       ($ :h2 {:class ["text-lg" "dark:text-white/40" "text-gray-800/60" "mb-10"]}
-          "Ollama UI requires an active Ollama server to work")
-       ($ :div {:class ["flex" "items-center" "rounded-md" "bg-gray-100" "dark:bg-white/5" "py-2" "pr-2" "pl-4"
-                        "dark:text-white" "font-mono" "text-sm"]}
-          ($ :span {:class ["dark:text-white" "opacity-25" "mr-3" "select-none"]} "$")
-          command
-          ($ :button {:class ["ml-6" "p-2" "rounded-sm" "dark:hover:bg-gray-900" "hover:bg-gray-200"]
-                      :on-click #(copy! command)}
-             (if copied
-               ($ Check {:size 16})
-               ($ Clipboard {:size 16})))))))
+    ($ :div {:class ["flex" "flex-col" "grow" "w-full"
+                     "justify-center" "items-center"
+                     "py-16" "h-full"]}
+       ($ :div {:class ["flex" "flex-col" "grow" "w-full" "justify-center" "items-center"]}
+          ($ OllamaAsleep)
+          ($ :h1 {:class ["dark:text-white" "text-3xl" "mt-6"]}
+             "Looks like Ollama is asleep!")
+          ($ :h2 {:class ["text-lg" "dark:text-white/40" "text-gray-800/60" "mb-10"]}
+             "Ollama UI requires an active Ollama server to work")
+          ($ :div {:class ["flex" "items-center" "rounded-md" "bg-gray-100" "dark:bg-white/5" "py-2" "pr-2" "pl-4"
+                           "dark:text-white" "font-mono" "text-sm"]}
+             ($ :span {:class ["dark:text-white" "opacity-25" "mr-3" "select-none"]} "$")
+             command
+             ($ :button {:class ["ml-6" "p-2" "rounded-sm" "dark:hover:bg-gray-900" "hover:bg-gray-200"]
+                         :on-click #(copy! command)}
+                (if copied
+                  ($ Check {:size 16})
+                  ($ Clipboard {:size 16}))))
+          ($ IconButton {:class ["mt-12"]
+                         :icon RefreshCw
+                         :on-click #(dispatch [:get-models])})))))
 
 (defnc Dialogs []
-  (let [[dialog-chooser? set-dialog-chooser!] (use-state false)
+  (let [ollama-offline? (use-sub [:ollama-offline?])
+        [dialog-chooser? set-dialog-chooser!] (use-state false)
         ls-sidebar? (local-storage-get (str ls-chat-ollama-prefs "sidebar?"))
         [show-sidebar? set-show-sidebar!]
         (use-state (if (some? ls-sidebar?)
@@ -416,30 +427,34 @@
       (str ls-chat-ollama-prefs "sidebar?")
       show-sidebar?))
 
-    ($ :div {:class ["flex" "dark:text-white" "relative" "w-full"]}
-       (when (or (empty? dialogs) dialog-chooser?)
-         ($ :div {:class ["absolute" "inset-0" "dark:bg-gray-900/75" "bg-white/30" "backdrop-blur-md" "z-50" "w-full" "h-full"]}
-            ($ StartDialog {:on-close (when (seq dialogs) #(set-dialog-chooser! false))})))
+    (if (some? ollama-offline?)
+      ($ :div {:class ["flex" "dark:text-white" "relative" "w-full"]}
+         (when ollama-offline?
+           ($ :div {:class ["absolute" "inset-0" "dark:bg-gray-900/75" "bg-white/30" "backdrop-blur-md" "z-50" "w-full" "h-full"]}
+              ($ Offline)))
 
-       ($ AnimatedSidebar {:set-dialog-chooser! set-dialog-chooser!
-                           :toggle-sidebar! toggle-sidebar!
-                           :style sidebar-props})
+         (when (and (not ollama-offline?)
+                    (or (empty? dialogs) dialog-chooser?))
+           ($ :div {:class ["absolute" "inset-0" "dark:bg-gray-900/75" "bg-white/30" "backdrop-blur-md" "z-50" "w-full" "h-full"]}
+              ($ StartDialog {:on-close (when (seq dialogs) #(set-dialog-chooser! false))})))
 
-       ($ (j/get animated :div)
-          {:className "absolute top-0 left-0 p-4 z-30"
-           :style sidebar-icon-props}
-          ($ IconButton {:on-click toggle-sidebar!
-                         :icon PanelLeftOpen}))
-       ($ Dialog))))
+         ($ AnimatedSidebar {:set-dialog-chooser! set-dialog-chooser!
+                             :toggle-sidebar! toggle-sidebar!
+                             :style sidebar-props})
+
+         ($ (j/get animated :div)
+            {:className "absolute top-0 left-0 p-4 z-30"
+             :style sidebar-icon-props}
+            ($ IconButton {:on-click toggle-sidebar!
+                           :icon PanelLeftOpen}))
+         ($ Dialog))
+      (<>))))
 
 (defnc Main []
-  (let [ollama-offline? (use-sub [:ollama-offline?])]
 
-    (use-effect
-     :once
-     (dispatch [:get-models]))
+  (use-effect
+   :once
+   (dispatch [:get-models 2000]))
 
-    ($ :div {:class ["flex" "w-full" "h-full" "relative"]}
-       (if ollama-offline?
-         ($ Offline)
-         ($ Dialogs)))))
+  ($ :div {:class ["flex" "w-full" "h-full" "relative"]}
+     ($ Dialogs)))
