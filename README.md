@@ -4,6 +4,7 @@
 
 Chat-Ollama is a local chat app for your Ollama models in a web browser. With multiple dialogs and message formatting support, you can easily communicate with your ollama models without using the CLI.
 
+![Chat Ollama Demo](chat-ollama.png)
 
 ## Usage
 
