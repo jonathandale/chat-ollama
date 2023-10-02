@@ -23,15 +23,12 @@
    (:dialogs db)))
 
 (reg-sub
- :model-dialogs
- (fn [_ _]
-   [(sub [:selected-model])
-    (sub [:dialogs])])
- (fn [[selected-model dialogs] _]
+ :dialog-list
+ :<- [:dialogs]
+ (fn [dialogs]
    (->> dialogs
         (vals)
-        (filter (fn [dialog]
-                  (= selected-model (:name dialog))))
+        (map #(dissoc % :exchanges))
         (sort-by :timestamp)
         (reverse))))
 
@@ -45,7 +42,6 @@
  :<- [:dialogs]
  (fn [dialogs [_ dialog-uuid]]
    (get dialogs dialog-uuid)))
-
 
 (reg-sub
  :dialog-exchanges
