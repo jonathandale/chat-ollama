@@ -81,7 +81,8 @@
                                        (merge data @final-result)
                                        (update data :response #(str % @buffer))))))))))))
       (j/call :catch
-              #(dispatch (conj on-failure {:status 0})))))
+              #(when (re-find #"network error" (j/get % :message))
+                 (dispatch (conj on-failure {:status 0}))))))
 
 (reg-fx :fetch-stream
         (fn [{:keys [set-abort! on-abort] :as request}]
