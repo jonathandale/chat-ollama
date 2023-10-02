@@ -65,12 +65,20 @@
         [abort set-abort!] (use-state nil)
         slowly-set-prompt (debounce set-prompt! 150)
         ref! (use-ref nil)
+        set-height! #(do
+                       (j/assoc-in! @ref! [:style :height] "auto")
+                       (j/assoc-in! @ref!
+                                    [:style :height]
+                                    (str (min max-textarea-height
+                                              (max min-textarea-height
+                                                   (j/get @ref! :scrollHeight))) "px")))
         send! #(do
                  (dispatch [:send-prompt {:selected-dialog selected-dialog
                                           :prompt %
                                           :set-abort! set-abort!}])
                  (j/assoc! @ref! :value "")
-                 (set-prompt! nil))
+                 (set-prompt! nil)
+                 (set-height!))
         on-key-press #(when (and (= (j/get % :key) "Enter")
                                  (not (j/get % :shiftKey)))
                         (j/call % :preventDefault)
@@ -99,12 +107,7 @@
                         :placeholder (str "Send message to " selected-model)
                         :onChange #(do
                                      (slowly-set-prompt (j/get-in % [:target :value]))
-                                     (j/assoc-in! @ref! [:style :height] "auto")
-                                     (j/assoc-in! @ref!
-                                                  [:style :height]
-                                                  (str (min max-textarea-height
-                                                            (max min-textarea-height
-                                                                 (j/get @ref! :scrollHeight))) "px")))
+                                     (set-height!))
                         :onKeyPress on-key-press
                         :disabled generating?
                         :rows 1
@@ -250,12 +253,12 @@
                               :copy->clipboard (:response meta)}
                      (if answer
                        ($ Markdown {} answer)
-                       (when-not failed?
+                       (when-not (or failed? aborted?)
                          ($ :div {:class ["flex" "flex-col" "gap-2" "my-1" "animate-pulse" "min-w-[250px]"]}
                             ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded"]})
                             ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded" "w-[75%]"]}))))
                      (when aborted?
-                       ($ :p {:class ["dark:text-white/20" "text-sm" "mt-2" "italic"]}
+                       ($ :p {:class ["dark:text-white/20" "text-sm" "italic"]}
                           "The answer was stopped before finishing"))
                      (when failed?
                        ($ :p {:class ["dark:text-white/20" "text-sm" "italic"]}
