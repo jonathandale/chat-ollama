@@ -81,13 +81,35 @@
             :on-success [:get-models-success]
             :on-failure [:get-models-failure wait]}}))
 
-;; DIALOGS
+(reg-event-db
+ :warm-model-success
+ identity)
 
 (reg-event-db
+ :warm-model-failure
+ ollama-interceptors
+ (fn [db [_ _wait {:keys [status]}]]
+   (assoc db :ollama-offline? (zero? status))))
+
+(reg-event-fx
+ :warm-model
+ ollama-interceptors
+ (fn [_ [_ model-name]]
+   {:fetch {:url (str api-base "/api/generate")
+            :method :post
+            :body {:model model-name}
+            :on-success [:warm-model-success]
+            :on-failure [:warm-model-failure]}}))
+
+;; DIALOGS
+
+(reg-event-fx
  :set-selected-dialog
  ollama-interceptors
- (fn [db [_ dialog-uuid]]
-   (assoc db :selected-dialog dialog-uuid)))
+ (fn [{:keys [db]} [_ dialog-uuid]]
+   (let [selected-dialog (get-in db [:dialogs dialog-uuid])]
+     {:db (assoc db :selected-dialog dialog-uuid)
+      :dispatch [:warm-model (:model-name selected-dialog)]})))
 
 (reg-event-fx
  :new-dialog
@@ -102,7 +124,8 @@
                          :model-name model-name
                          :timestamp timestamp})
               (assoc :selected-model model-name
-                     :selected-dialog new-uuid))})))
+                     :selected-dialog new-uuid))
+      :dispatch [:warm-model model-name]})))
 
 (reg-event-fx
  :delete-dialog
@@ -113,10 +136,13 @@
                             :dialogs
                             vals
                             (sort-by :timestamp)
-                            first)]
-     {:db (-> purged
-              (assoc :selected-model (:model-name next-selected)
-                     :selected-dialog (:uuid next-selected)))})))
+                            first)
+         model-name (:model-name next-selected)]
+     (cond-> {:db (-> purged
+                      (assoc :selected-model model-name
+                             :selected-dialog (:uuid next-selected)))}
+       (seq? model-name)
+       (assoc :dispatch [:warm-model model-name])))))
 
 ;; PROMPTS
 (reg-event-fx
