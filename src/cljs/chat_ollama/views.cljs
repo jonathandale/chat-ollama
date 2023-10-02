@@ -67,24 +67,14 @@
         ref! (use-ref nil)
         send! #(do
                  (dispatch [:send-prompt {:selected-dialog selected-dialog
-                                          :prompt prompt
+                                          :prompt %
                                           :set-abort! set-abort!}])
                  (j/assoc! @ref! :value "")
                  (set-prompt! nil))
         on-key-press #(when (and (= (j/get % :key) "Enter")
                                  (not (j/get % :shiftKey)))
                         (j/call % :preventDefault)
-                        (send!))]
-
-    (use-effect
-     [prompt]
-     (when @ref!
-       (j/assoc-in! @ref! [:style :height] "auto")
-       (j/assoc-in! @ref!
-                    [:style :height]
-                    (str (min max-textarea-height
-                              (max min-textarea-height
-                                   (j/get @ref! :scrollHeight))) "px"))))
+                        (send! (j/get-in % [:target :value])))]
 
     (use-effect
      [@ref! generating?]
@@ -107,7 +97,14 @@
           ($ :textarea {:ref ref!
                         :key selected-dialog
                         :placeholder (str "Send message to " selected-model)
-                        :onChange #(slowly-set-prompt (j/get-in % [:target :value]))
+                        :onChange #(do
+                                     (slowly-set-prompt (j/get-in % [:target :value]))
+                                     (j/assoc-in! @ref! [:style :height] "auto")
+                                     (j/assoc-in! @ref!
+                                                  [:style :height]
+                                                  (str (min max-textarea-height
+                                                            (max min-textarea-height
+                                                                 (j/get @ref! :scrollHeight))) "px")))
                         :onKeyPress on-key-press
                         :disabled generating?
                         :rows 1
@@ -120,7 +117,7 @@
 
           ($ :button {:class ["absolute" "right-3.5" "bottom-9" "mb-1.5" "z-20" "dark:text-white" "text-gray-700"
                               (when-not (seq prompt) "opacity-20")]
-                      :on-click send!}
+                      :on-click #(send! prompt)}
              ($ SendHorizontal))))))
 
 (defnc Message [{:keys [user? children copy->clipboard]}]
