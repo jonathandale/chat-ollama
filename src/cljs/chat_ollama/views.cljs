@@ -326,8 +326,7 @@
 (defnc Sidebar [{:keys [set-dialog-chooser! toggle-sidebar! style]}]
   (let [selected-model (use-sub [:selected-model])
         selected-dialog (use-sub [:selected-dialog])
-        dialogs (use-sub [:dialogs])]
-
+        dialogs (use-sub [:dialog-list])]
     ($ :div {:style (j/assoc! style :width sidebar-width)
              :class ["dark:bg-gray-950" "bg-gray-50"
                      "flex" "flex-col" "shrink-0" "p-6"]}
@@ -344,7 +343,7 @@
        ($ :div {:class ["grow" "overflow-scroll"]}
           ($ :ul {:class ["flex" "flex-col" "gap-y-1"]}
              (if (seq dialogs)
-               (for [[uuid dialog] dialogs]
+               (for [{:keys [uuid] :as dialog} dialogs]
                  (let [selected? (= selected-dialog uuid)
                        [model-name model-version] (str/split (:model-name dialog) #":")]
                    ($ :li {:key uuid}
@@ -406,7 +405,7 @@
                      ls-sidebar?
                      true))
         toggle-sidebar! #(set-show-sidebar! not)
-        dialogs (use-sub [:dialogs])
+        dialogs (use-sub [:dialog-list])
         sidebar-props (useSpring #js {:marginLeft
                                       (if show-sidebar?
                                         "0"
