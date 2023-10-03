@@ -169,12 +169,39 @@
                            :className (when user? "border dark:border-none border-gray-300/50")}))
                 ($ :code {} children))))}}))
 
+(defnc Exchange [{:keys [dialog-uuid exchange-uuid]}]
+  (let [{:keys [prompt answer aborted? failed? meta]}
+        (use-sub [:dialog-exchange {:dialog-uuid dialog-uuid
+                                    :exchange-uuid exchange-uuid}])]
+    ($ :div {:class ["flex" "flex-col" "gap-6" "mt-6"]}
+       ($ Message {:user? true}
+          ($ Markdown {:user? true} prompt))
+       ($ Message {:user? false
+                   :copy->clipboard (:response meta)}
+          (if answer
+            ($ Markdown {} answer)
+            (when-not (or failed? aborted?)
+              ($ :div {:class ["flex" "flex-col" "gap-2" "my-1" "animate-pulse" "min-w-[250px]"]}
+                 ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded"]})
+                 ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded" "w-[75%]"]}))))
+          (when aborted?
+            ($ :p {:class ["dark:text-white/20" "text-sm" "italic"]}
+               "The answer was stopped before finishing"))
+          (when failed?
+            ($ :p {:class ["dark:text-white/20" "text-sm" "italic"]}
+               "There was an issue finishing this response."))
+          (when (some? meta)
+            ($ :p {:class ["dark:text-white/20" "text-gray-300" "text-sm" "mt-2" "italic"]}
+               (str "Took ~" (j/call js/Math :round (/ (:total_duration meta) 1e+9))
+                    " seconds, at " (j/call js/Math :round (/ (:eval_count meta) (/ (:eval_duration meta) 1e+9)))
+                    " tokens per second.")))))))
+
 (defnc Dialog []
   (let [ref! (use-ref nil)
-        exchanges (use-sub [:dialog-exchanges])
         selected-model (use-sub [:selected-model])
         selected-dialog (use-sub [:selected-dialog])
-        {:keys [title]} (use-sub [:dialog selected-dialog])
+        exchanges (use-sub [:dialog-exchanges selected-dialog])
+        {:keys [title]} (use-sub [:dialog-meta selected-dialog])
         [model-name model-version] (str/split selected-model #":")
         [->top-disabled? set->top-disabled] (use-state true)
         [->bottom-disabled? set->bottom-disabled] (use-state true)
@@ -200,6 +227,7 @@
                       (set->top-disabled (not (pos? scroll-top)))
                       (set->bottom-disabled (not (pos? scroll-bottom)))))
                   500)]
+
     (use-effect
      [title model-name]
      (j/assoc! js/document :title
@@ -244,30 +272,10 @@
              model-name
              ($ :span {:class ["opacity-50"]} ":" model-version))
           ($ :div {:class ["flex" "flex-col" "w-full" "grow" "max-w-6xl" "mx-auto" "justify-end" "pt-6" "pb-36" "px-20"]}
-             (for [{:keys [prompt answer aborted? failed? timestamp meta]} exchanges]
-               ($ :div {:class ["flex" "flex-col" "gap-6" "mt-6"]
-                        :key timestamp}
-                  ($ Message {:user? true}
-                     ($ Markdown {:user? true} prompt))
-                  ($ Message {:user? false
-                              :copy->clipboard (:response meta)}
-                     (if answer
-                       ($ Markdown {} answer)
-                       (when-not (or failed? aborted?)
-                         ($ :div {:class ["flex" "flex-col" "gap-2" "my-1" "animate-pulse" "min-w-[250px]"]}
-                            ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded"]})
-                            ($ :div {:class ["h-2" "dark:bg-white/10" "bg-gray-200/75" "rounded" "w-[75%]"]}))))
-                     (when aborted?
-                       ($ :p {:class ["dark:text-white/20" "text-sm" "italic"]}
-                          "The answer was stopped before finishing"))
-                     (when failed?
-                       ($ :p {:class ["dark:text-white/20" "text-sm" "italic"]}
-                          "There was an issue finishing this response."))
-                     (when (some? meta)
-                       ($ :p {:class ["dark:text-white/20" "text-gray-300" "text-sm" "mt-2" "italic"]}
-                          (str "Took ~" (j/call js/Math :round (/ (:total_duration meta) 1e+9))
-                               " seconds, at " (j/call js/Math :round (/ (:eval_count meta) (/ (:eval_duration meta) 1e+9)))
-                               " tokens per second."))))))))
+             (for [exchange-uuid exchanges]
+               ($ Exchange {:key exchange-uuid
+                            :dialog-uuid selected-dialog
+                            :exchange-uuid exchange-uuid}))))
        ($ Footer))))
 
 (defnc SidebarItem [{:keys [selected? on-click children]}]
