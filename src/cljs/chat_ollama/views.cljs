@@ -3,7 +3,7 @@
             [clojure.string :as str]
             [clojure.set :refer [union]]
             [chat-ollama.lib :refer [defnc]]
-            [chat-ollama.utils :refer [debounce local-storage-set! local-storage-get]]
+            [chat-ollama.utils :refer [debounce throttle local-storage-set! local-storage-get]]
             [chat-ollama.hooks :refer [use-copy-to-clipboard]]
             [helix.core :refer [$ <>]]
             [helix.hooks :refer [use-effect use-state use-ref]]
@@ -236,13 +236,16 @@
                  "Chat Ollama")))
 
     (use-effect
-     [exchanges]
-     (when (some? @ref!)
-       (let [{:keys [scroll-bottom]} (get-scroll-info)]
-         (when (<= scroll-bottom line-height)
-           (j/assoc! @ref!
-                     :scrollTop
-                     (j/get @ref! :scrollHeight))))))
+     [@ref!]
+     (let [slow-change (throttle #(let [{:keys [scroll-bottom]} (get-scroll-info)]
+                                    (when (<= scroll-bottom line-height)
+                                      (->bottom)))
+                                 100)
+           observer (new js/MutationObserver slow-change)]
+       (when (some? @ref!)
+         (j/call observer :observe @ref! #js{:subtree true :characterData true}))
+       #(j/call observer :disconnect)))
+
     (use-effect
      [(count exchanges)]
      (when (some? @ref!)
@@ -271,7 +274,7 @@
           ($ :p {:class ["text-sm" "dark:text-gray-100" "text-gray-600" "text-center" "p-6"]}
              model-name
              ($ :span {:class ["opacity-50"]} ":" model-version))
-          ($ :div {:class ["flex" "flex-col" "w-full" "grow" "max-w-6xl" "mx-auto" "justify-end" "pt-6" "pb-36" "px-20"]}
+          ($ :div {:class ["flex" "flex-col" "w-full" "grow" "max-w-6xl" "mx-auto" "justify-end" "pt-6" "px-20" "pb-28"]}
              (for [exchange-uuid exchanges]
                ($ Exchange {:key exchange-uuid
                             :dialog-uuid selected-dialog
