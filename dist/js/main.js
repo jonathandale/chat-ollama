@@ -1,3 +1,4 @@
+/*! For license information please see LICENSE.txt */
 var shadow$provide = {};
 (function(){
 shadow$provide[0]=function(f,e,p,a){function h(G){if(null===G||"object"!==typeof G)return null;G=ba&&G[ba]||G["@@iterator"];return"function"===typeof G?G:null}function l(G,O,R){this.props=G;this.context=O;this.refs=ka;this.updater=R||ia}function d(){}function m(G,O,R){this.props=G;this.context=O;this.refs=ka;this.updater=R||ia}function w(G,O,R){var Y,da={},pa=null,la=null;if(null!=O)for(Y in void 0!==O.ref&&(la=O.ref),void 0!==O.key&&(pa=""+O.key),O)Aa.call(O,Y)&&!Oa.hasOwnProperty(Y)&&(da[Y]=O[Y]);

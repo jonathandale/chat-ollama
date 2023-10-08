@@ -1,0 +1,119 @@
+# Licenses
+
+## @react-spring/web
+
+MIT License
+
+Copyright (c) 2018-present Paul Henschel, react-spring, all contributors
+
+https://opensource.org/license/mit/
+
+## date-fns
+
+MIT License
+
+Copyright (c) 2021 Sasha Koss and Lesha Koss https://kossnocorp.mit-license.org
+
+https://opensource.org/license/mit/
+
+## lucide-react
+
+ISC License
+
+Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+
+https://opensource.org/license/isc-license-txt/
+
+## react
+
+MIT License
+
+Copyright (c) Facebook, Inc. and its affiliates.
+
+https://opensource.org/license/mit/
+
+## react-dom
+
+MIT License
+
+Copyright (c) Facebook, Inc. and its affiliates.
+
+https://opensource.org/license/mit/
+
+## react-hotkeys-hook
+
+MIT License
+
+Copyright (c) 2018 Johannes Klauss
+
+https://opensource.org/license/mit/
+
+## react-markdown
+
+The MIT License (MIT)
+
+Copyright (c) 2015 Espen Hovlandsdal
+
+https://opensource.org/license/mit/
+
+## react-refresh
+
+MIT License
+
+Copyright (c) Facebook, Inc. and its affiliates.
+
+https://opensource.org/license/mit/
+
+## react-syntax-highlighter
+
+MIT License
+
+Copyright (c) 2019 Conor Hastings
+
+https://opensource.org/license/mit/
+
+## use-sync-external-store
+
+MIT License
+
+Copyright (c) Facebook, Inc. and its affiliates.
+
+https://opensource.org/license/mit/
+
+## lilactown/helix "0.1.10"
+
+Eclipse Public License - v 2.0
+
+https://opensource.org/license/epl-2-0/
+
+## com.fbeyer/refx "0.0.49"
+
+MIT License
+
+Copyright (c) 2022 Ferdinand Beyer
+
+https://opensource.org/license/mit/
+
+## applied-science/js-interop "0.4.2"
+
+Eclipse Public License - v 2.0
+
+https://opensource.org/license/epl-2-0/
+
+## cljs-bean "1.9.0"
+
+Eclipse Public License - v 1.0
+
+https://opensource.org/license/epl-1-0/
+
+## funcool/promesa "11.0.678"
+
+Mozilla Public License Version 2.0
+
+https://opensource.org/license/mpl-2-0/
+
+## com.cognitect/transit-cljs "0.8.280"
+
+Apache License
+Version 2.0, January 2004
+http://www.apache.org/licenses/

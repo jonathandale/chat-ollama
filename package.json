@@ -9,7 +9,7 @@
     "dev": "concurrently \"npm:dev-app\" \"npm:dev-css\"",
     "build-app": "shadow-cljs release app",
     "build-clean": "rimraf dist",
-    "build-copy": "cp public/index.html public/favicon.ico dist/ && mkdir dist/assets && cp public/assets/* dist/assets",
+    "build-copy": "cp public/index.html public/favicon.ico public/license.txt dist/ && mkdir dist/assets && cp public/assets/* dist/assets && awk 'BEGIN {print \"/*! For license information please see LICENSE.txt */\"} {print}' dist/js/main.js > temp && mv temp dist/js/main.js",
     "build-css": "npx tailwindcss -i ./src/css/style.css -o ./dist/style.css",
     "build": "npm run build-clean && npm run build-css && npm run build-app && npm run build-copy",
     "serve": "npx serve dist -L -s -n -p 1420",
