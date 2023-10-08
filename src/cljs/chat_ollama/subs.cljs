@@ -1,5 +1,5 @@
 (ns chat-ollama.subs
-  (:require [refx.alpha :refer [reg-sub sub]]))
+  (:require [refx.alpha :refer [reg-sub]]))
 
 ;; Misc
 (reg-sub
