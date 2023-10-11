@@ -45,11 +45,12 @@
   [offline-interceptor
    check-spec-interceptor])
 
-(reg-event-db
+(reg-event-fx
  :initialise-db
  ollama-interceptors
  (fn [_ _]
-   default-db))
+   {:db default-db
+    :dispatch [:new-dialog]}))
 
 (reg-event-db
  :set-selected-model
@@ -95,11 +96,13 @@
  :warm-model
  ollama-interceptors
  (fn [_ [_ model-name]]
-   {:fetch {:url (str api-base "/api/generate")
-            :method :post
-            :body {:model model-name}
-            :on-success [:warm-model-success]
-            :on-failure [:warm-model-failure]}}))
+   (if model-name
+     {:fetch {:url (str api-base "/api/generate")
+              :method :post
+              :body {:model model-name}
+              :on-success [:warm-model-success]
+              :on-failure [:warm-model-failure]}}
+     {})))
 
 ;; DIALOGS
 
@@ -110,6 +113,14 @@
    (let [selected-dialog (get-in db [:dialogs dialog-uuid])]
      {:db (assoc db :selected-dialog dialog-uuid)
       :dispatch [:warm-model (:model-name selected-dialog)]})))
+
+(reg-event-db
+ :set-dialog-model
+ ollama-interceptors
+ (fn [db [_ dialog-uuid model-name]]
+   (-> db
+       (assoc-in [:dialogs dialog-uuid :model-name] model-name)
+       (assoc :selected-model model-name))))
 
 (reg-event-fx
  :new-dialog
