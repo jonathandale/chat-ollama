@@ -4,7 +4,7 @@
 (s/def ::prompt string?)
 (s/def ::timestamp number?)
 (s/def ::uuid string?)
-(s/def ::model-name string?)
+(s/def ::model-name (s/nilable string?))
 (s/def ::answer (s/nilable string?))
 (s/def ::generating? boolean?)
 (s/def ::aborted? boolean?)
