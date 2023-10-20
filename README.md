@@ -67,5 +67,6 @@ $ yarn serve
 
 ## License
 
-Distributed under the MIT License.
+Distributed under the [MIT License](LICENSE).
+
 Copyright © 2023 Jonathan Dale
