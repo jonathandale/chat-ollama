@@ -35,6 +35,7 @@
     "use-sync-external-store": "^1.2.0"
   },
   "resolutions": {
-    "browserify-sign": "^4.2.2"
+    "browserify-sign": "^4.2.2",
+    "postcss": "^8.4.31"
   }
 }
