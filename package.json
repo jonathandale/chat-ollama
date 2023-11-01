@@ -33,5 +33,8 @@
     "react-refresh": "^0.14.0",
     "react-syntax-highlighter": "^15.5.0",
     "use-sync-external-store": "^1.2.0"
+  },
+  "resolutions": {
+    "browserify-sign": "^4.2.2"
   }
 }
