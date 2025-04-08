@@ -16,26 +16,27 @@
     "shadow-cljs": "shadow-cljs"
   },
   "devDependencies": {
-    "concurrently": "^8.2.1",
-    "rimraf": "^5.0.1",
-    "serve": "^14.2.1",
-    "shadow-cljs": "^2.25.3",
+    "concurrently": "^9.1.2",
+    "rimraf": "^6.0.1",
+    "serve": "^14.2.4",
+    "shadow-cljs": "^2.28.22",
     "tailwindcss": "^3.3.3"
   },
   "dependencies": {
-    "@react-spring/web": "^9.7.3",
-    "date-fns": "^2.30.0",
-    "lucide-react": "^0.274.0",
+    "@react-spring/web": "^9.7.5",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.487.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-hotkeys-hook": "^4.4.1",
-    "react-markdown": "^8.0.7",
-    "react-refresh": "^0.14.0",
-    "react-syntax-highlighter": "^15.5.0",
-    "use-sync-external-store": "^1.2.0"
+    "react-hotkeys-hook": "^4.6.1",
+    "react-markdown": "^10.1.0",
+    "react-refresh": "^0.17.0",
+    "react-syntax-highlighter": "^15.6.1",
+    "use-sync-external-store": "^1.5.0"
   },
-  "resolutions": {
+  "overrides": {
     "browserify-sign": "^4.2.2",
-    "postcss": "^8.4.31"
+    "postcss": "^8.4.31",
+    "prismjs": "^1.30.0"
   }
 }
